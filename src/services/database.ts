@@ -58,9 +58,14 @@ class DatabaseService {
       ]
     );
 
+    await this.db.runAsync(
+      `DELETE FROM food_items WHERE meal_id = ?`,
+      [record.id]
+    );
+
     for (const food of record.foods) {
       await this.db.runAsync(
-        `INSERT OR REPLACE INTO food_items 
+        `INSERT INTO food_items 
          (id, meal_id, name, calories, protein, fat, carbs, sodium, potassium, phosphorus, 
           purines, health_score, health_status, quantity_suggestion, alternatives, cooking_tips) 
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -95,11 +100,43 @@ class DatabaseService {
       [dateString]
     );
 
-    return records.map((record: any) => ({
-      ...record,
-      timestamp: new Date(record.timestamp),
-      healthImpact: JSON.parse(record.health_impact)
-    }));
+    const mealRecords: MealRecord[] = [];
+    for (const record of records) {
+      const mealId = (record as any).id;
+      const foods = await this.db.getAllAsync(
+        `SELECT * FROM food_items WHERE meal_id = ?`,
+        [mealId]
+      );
+
+      const foodItems: FoodItem[] = foods.map((food: any) => ({
+        id: food.id,
+        name: food.name,
+        calories: food.calories,
+        protein: food.protein,
+        fat: food.fat,
+        carbs: food.carbs,
+        sodium: food.sodium,
+        potassium: food.potassium,
+        phosphorus: food.phosphorus,
+        purines: food.purines,
+        healthScore: food.health_score,
+        healthStatus: food.health_status,
+        quantitySuggestion: food.quantity_suggestion,
+        alternatives: JSON.parse(food.alternatives),
+        cookingTips: JSON.parse(food.cooking_tips)
+      }));
+
+      mealRecords.push({
+        id: mealId,
+        timestamp: new Date((record as any).timestamp),
+        mealType: (record as any).meal_type as MealRecord['mealType'],
+        foods: foodItems,
+        totalCalories: (record as any).total_calories,
+        healthImpact: JSON.parse((record as any).health_impact)
+      });
+    }
+
+    return mealRecords;
   }
 }
 
