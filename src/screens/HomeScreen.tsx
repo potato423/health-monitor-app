@@ -1,147 +1,119 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import { foodRecognitionService } from '../services/foodRecognition';
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function HomeScreen() {
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [analyzing, setAnalyzing] = useState(false);
-
-  const handleTakePhoto = async () => {
-    try {
-      const uri = await foodRecognitionService.captureImage();
-      if (uri) {
-        setSelectedImage(uri);
-      }
-    } catch (error) {
-      Alert.alert('错误', '无法打开相机，请检查相机权限');
-    }
-  };
-
-  const handlePickImage = async () => {
-    try {
-      setAnalyzing(true);
-      const uri = await foodRecognitionService.pickImage();
-      if (uri) {
-        setSelectedImage(uri);
-      }
-    } catch (error) {
-      Alert.alert('错误', '无法打开相册，请检查相册权限');
-    } finally {
-      setAnalyzing(false);
-    }
-  };
-
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>健康监测</Text>
-      <Text style={styles.subtitle}>拍照识别食物，了解健康影响</Text>
-      
-      {selectedImage && (
-        <View style={styles.imagePreview}>
-          <Image source={{ uri: selectedImage }} style={styles.previewImage} />
-        </View>
-      )}
-      
-      <TouchableOpacity 
-        style={styles.button} 
-        onPress={handleTakePhoto}
-        disabled={analyzing}
-      >
-        <Text style={styles.buttonText}>
-          {analyzing ? '分析中...' : '拍照识别食物'}
-        </Text>
-      </TouchableOpacity>
-      
-      <TouchableOpacity 
-        style={styles.secondaryButton}
-        onPress={handlePickImage}
-        disabled={analyzing}
-      >
-        <Text style={styles.secondaryButtonText}>从相册选择</Text>
-      </TouchableOpacity>
-      
-      <View style={styles.statusContainer}>
-        <Text style={styles.statusText}>今日状态</Text>
-        <Text style={styles.statusValue}>等待记录</Text>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.greeting}>早上好</Text>
+        <Text style={styles.date}>3月25日 周三</Text>
       </View>
-    </View>
+
+      <View style={styles.heroSection}>
+        <View style={styles.scanButton}>
+          <Ionicons name="camera-outline" size={48} color="#007AFF" />
+          <Text style={styles.scanTitle}>扫描食物</Text>
+          <Text style={styles.scanSubtitle}>拍照识别食物是否能吃</Text>
+        </View>
+      </View>
+
+      <View style={styles.quickActions}>
+        <TouchableOpacity style={styles.actionCard}>
+          <Ionicons name="albums-outline" size={28} color="#34C759" />
+          <Text style={styles.actionText}>从相册选择</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.actionCard}>
+          <Ionicons name="add-circle-outline" size={28} color="#FF9500" />
+          <Text style={styles.actionText}>手动添加</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.tipCard}>
+        <Ionicons name="bulb-outline" size={20} color="#5856D6" />
+        <Text style={styles.tipText}>今日建议：多摄入蔬菜，减少高嘌呤食物</Text>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F2F2F7',
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 10,
+  },
+  greeting: {
+    fontSize: 34,
+    fontWeight: 'bold',
+    color: '#000000',
+  },
+  date: {
+    fontSize: 17,
+    color: '#8E8E93',
+    marginTop: 4,
+  },
+  heroSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 30,
+  },
+  scanButton: {
     backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 30,
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333333',
-    marginBottom: 8,
+  scanTitle: {
+    fontSize: 22,
+    fontWeight: '600',
+    color: '#000000',
+    marginTop: 12,
   },
-  subtitle: {
-    fontSize: 16,
-    color: '#666666',
-    marginBottom: 40,
+  scanSubtitle: {
+    fontSize: 15,
+    color: '#8E8E93',
+    marginTop: 4,
   },
-  imagePreview: {
-    width: '100%',
-    height: 200,
-    marginBottom: 20,
-    borderRadius: 12,
-    overflow: 'hidden',
+  quickActions: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    gap: 12,
   },
-  previewImage: {
-    width: '100%',
-    height: '100%',
-  },
-  button: {
-    backgroundColor: '#4CAF50',
-    paddingHorizontal: 40,
-    paddingVertical: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-    width: '100%',
+  actionCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 18,
     alignItems: 'center',
   },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: 'bold',
+  actionText: {
+    fontSize: 13,
+    color: '#8E8E93',
+    marginTop: 8,
   },
-  secondaryButton: {
-    borderWidth: 1,
-    borderColor: '#4CAF50',
-    paddingHorizontal: 40,
-    paddingVertical: 16,
-    borderRadius: 12,
-    width: '100%',
+  tipCard: {
+    flexDirection: 'row',
     alignItems: 'center',
-  },
-  secondaryButtonText: {
-    color: '#4CAF50',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  statusContainer: {
-    marginTop: 40,
-    padding: 20,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#F0F0FF',
+    marginHorizontal: 20,
+    marginTop: 20,
+    padding: 16,
     borderRadius: 12,
-    width: '100%',
   },
-  statusText: {
-    fontSize: 14,
-    color: '#666666',
-    marginBottom: 8,
-  },
-  statusValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333333',
+  tipText: {
+    flex: 1,
+    fontSize: 15,
+    color: '#5856D6',
+    marginLeft: 10,
   },
 });

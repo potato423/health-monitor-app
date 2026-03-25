@@ -1,85 +1,62 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createStackNavigator } from '@react-navigation/stack';
 import { StatusBar } from 'expo-status-bar';
+import { Ionicons } from '@expo/vector-icons';
 
 import HomeScreen from './src/screens/HomeScreen';
 import RecordScreen from './src/screens/RecordScreen';
 import AnalysisScreen from './src/screens/AnalysisScreen';
-import PaywallScreen from './src/screens/PaywallScreen';
-import { paymentService } from './src/services/paymentService';
 
 const Tab = createBottomTabNavigator();
-const Stack = createStackNavigator();
-
-function MainTabs() {
-  return (
-    <Tab.Navigator
-      screenOptions={{
-        tabBarActiveTintColor: '#4CAF50',
-        tabBarInactiveTintColor: '#666666',
-        tabBarStyle: {
-          backgroundColor: '#FFFFFF',
-          borderTopWidth: 1,
-          borderTopColor: '#E5E7EB',
-        },
-        headerStyle: {
-          backgroundColor: '#FFFFFF',
-        },
-        headerTintColor: '#333333',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-        },
-      }}
-    >
-      <Tab.Screen name="首页" component={HomeScreen} />
-      <Tab.Screen name="记录" component={RecordScreen} />
-      <Tab.Screen name="分析" component={AnalysisScreen} />
-    </Tab.Navigator>
-  );
-}
 
 export default function App() {
-  const [isTrial, setIsTrial] = useState(true);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    checkTrialStatus();
-  }, []);
-
-  const checkTrialStatus = async () => {
-    try {
-      const { isTrial: trialStatus } = await paymentService.checkTrialStatus();
-      setIsTrial(trialStatus);
-    } catch (error) {
-      console.error('Failed to check trial status:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return null; // 或显示加载界面
-  }
-
   return (
     <NavigationContainer>
-      <StatusBar style="auto" />
-      <Stack.Navigator>
-        {!isTrial ? (
-          <Stack.Screen 
-            name="Paywall" 
-            component={PaywallScreen}
-            options={{ headerShown: false }}
-          />
-        ) : null}
-        <Stack.Screen 
-          name="Main" 
-          component={MainTabs}
-          options={{ headerShown: false }}
+      <StatusBar style="dark" />
+      <Tab.Navigator
+        screenOptions={({ route }) => ({
+          tabBarIcon: ({ focused, color, size }) => {
+            let iconName: keyof typeof Ionicons.glyphMap;
+
+            if (route.name === '首页') {
+              iconName = focused ? 'home' : 'home-outline';
+            } else if (route.name === '记录') {
+              iconName = focused ? 'document-text' : 'document-text-outline';
+            } else {
+              iconName = focused ? 'analytics' : 'analytics-outline';
+            }
+
+            return <Ionicons name={iconName} size={size} color={color} />;
+          },
+          tabBarActiveTintColor: '#007AFF',
+          tabBarInactiveTintColor: '#8E8E93',
+          tabBarStyle: {
+            backgroundColor: '#FFFFFF',
+            borderTopColor: '#E5E5EA',
+            paddingTop: 8,
+            height: 88,
+          },
+          tabBarLabelStyle: {
+            fontSize: 12,
+            fontWeight: '500',
+          },
+          headerShown: false,
+        })}
+      >
+        <Tab.Screen 
+          name="首页" 
+          component={HomeScreen}
         />
-      </Stack.Navigator>
+        <Tab.Screen 
+          name="记录" 
+          component={RecordScreen}
+        />
+        <Tab.Screen 
+          name="分析" 
+          component={AnalysisScreen}
+        />
+      </Tab.Navigator>
     </NavigationContainer>
   );
 }
