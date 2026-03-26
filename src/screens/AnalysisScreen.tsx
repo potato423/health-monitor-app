@@ -1,19 +1,20 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { i18n } from '../i18n';
 
 const mockAnalysis = {
   healthScore: 7.5,
   trends: [
-    { name: '尿酸', value: '稳定', trend: 'stable', icon: 'water-outline' },
-    { name: '血压', value: '正常', trend: 'improving', icon: 'heart-outline' },
-    { name: '血糖', value: '正常', trend: 'improving', icon: 'flash-outline' },
-    { name: '血脂', value: '略高', trend: 'worsening', icon: 'fitness-outline' },
+    { name: '尿酸', nameEn: 'Uric Acid', value: '稳定', valueEn: 'Stable', trend: 'stable', icon: 'water-outline' },
+    { name: '血压', nameEn: 'Blood Pressure', value: '正常', valueEn: 'Normal', trend: 'improving', icon: 'heart-outline' },
+    { name: '血糖', nameEn: 'Blood Sugar', value: '正常', valueEn: 'Normal', trend: 'improving', icon: 'flash-outline' },
+    { name: '血脂', nameEn: 'Blood Fat', value: '略高', valueEn: 'Slightly High', trend: 'worsening', icon: 'fitness-outline' },
   ],
   recommendations: [
-    '多喝水，促进尿酸排泄',
-    '今日蔬菜摄入不足，建议增加',
-    '减少高盐食物摄入',
+    { zh: '多喝水，促进尿酸排泄', en: 'Drink more water to help excrete uric acid' },
+    { zh: '今日蔬菜摄入不足，建议增加', en: 'Insufficient vegetable intake today, increase consumption' },
+    { zh: '减少高盐食物摄入', en: 'Reduce high-salt food intake' },
   ],
 };
 
@@ -37,7 +38,8 @@ export default function AnalysisScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>健康分析</Text>
+        <Text style={styles.title}>{i18n.zh.analysis.title}</Text>
+        <Text style={styles.titleEn}>{i18n.en.analysis.title}</Text>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -46,11 +48,15 @@ export default function AnalysisScreen() {
             <Text style={styles.scoreValue}>{mockAnalysis.healthScore}</Text>
             <Text style={styles.scoreMax}>/10</Text>
           </View>
-          <Text style={styles.scoreLabel}>今日健康评分</Text>
+          <Text style={styles.scoreLabel}>{i18n.zh.analysis.healthScore}</Text>
+          <Text style={styles.scoreLabelEn}>{i18n.en.analysis.healthScore}</Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>各项指标</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>{i18n.zh.analysis.indicators}</Text>
+            <Text style={styles.sectionTitleEn}>{i18n.en.analysis.indicators}</Text>
+          </View>
           <View style={styles.trendsCard}>
             {mockAnalysis.trends.map((item, index) => (
               <View key={index} style={styles.trendItem}>
@@ -59,8 +65,8 @@ export default function AnalysisScreen() {
                     <Ionicons name={item.icon as any} size={22} color={getTrendColor(item.trend)} />
                   </View>
                   <View style={styles.trendInfo}>
-                    <Text style={styles.trendName}>{item.name}</Text>
-                    <Text style={styles.trendValue}>{item.value}</Text>
+                    <Text style={styles.trendName}>{item.name} · {item.nameEn}</Text>
+                    <Text style={styles.trendValue}>{item.value} / {item.valueEn}</Text>
                   </View>
                 </View>
                 <View style={[styles.trendBadge, { backgroundColor: getTrendColor(item.trend) + '20' }]}>
@@ -72,12 +78,18 @@ export default function AnalysisScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>建议</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>{i18n.zh.analysis.recommendations}</Text>
+            <Text style={styles.sectionTitleEn}>{i18n.en.analysis.recommendations}</Text>
+          </View>
           <View style={styles.adviceCard}>
             {mockAnalysis.recommendations.map((advice, index) => (
               <View key={index} style={styles.adviceItem}>
                 <Ionicons name="checkmark-circle" size={22} color="#007AFF" />
-                <Text style={styles.adviceText}>{advice}</Text>
+                <View style={styles.adviceTextContainer}>
+                  <Text style={styles.adviceText}>{advice.zh}</Text>
+                  <Text style={styles.adviceTextEn}>{advice.en}</Text>
+                </View>
               </View>
             ))}
           </View>
@@ -103,6 +115,11 @@ const styles = StyleSheet.create({
     fontSize: 34,
     fontWeight: 'bold',
     color: '#000000',
+  },
+  titleEn: {
+    fontSize: 15,
+    color: '#8E8E93',
+    marginTop: 2,
   },
   content: {
     flex: 1,
@@ -136,18 +153,31 @@ const styles = StyleSheet.create({
   },
   scoreLabel: {
     fontSize: 17,
-    color: '#8E8E93',
+    color: '#000000',
     marginTop: 12,
+    fontWeight: '500',
+  },
+  scoreLabelEn: {
+    fontSize: 14,
+    color: '#8E8E93',
+    marginTop: 4,
   },
   section: {
     marginTop: 24,
+  },
+  sectionHeader: {
+    marginBottom: 12,
+    marginLeft: 4,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
     color: '#000000',
-    marginBottom: 12,
-    marginLeft: 4,
+  },
+  sectionTitleEn: {
+    fontSize: 13,
+    color: '#8E8E93',
+    marginTop: 2,
   },
   trendsCard: {
     backgroundColor: '#FFFFFF',
@@ -164,6 +194,7 @@ const styles = StyleSheet.create({
   trendLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   iconCircle: {
     width: 40,
@@ -174,9 +205,10 @@ const styles = StyleSheet.create({
   },
   trendInfo: {
     marginLeft: 12,
+    flex: 1,
   },
   trendName: {
-    fontSize: 15,
+    fontSize: 14,
     color: '#8E8E93',
   },
   trendValue: {
@@ -200,14 +232,22 @@ const styles = StyleSheet.create({
   adviceItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingVertical: 10,
+    paddingVertical: 12,
+  },
+  adviceTextContainer: {
+    flex: 1,
+    marginLeft: 12,
   },
   adviceText: {
-    flex: 1,
     fontSize: 16,
     color: '#000000',
-    marginLeft: 12,
     lineHeight: 22,
+  },
+  adviceTextEn: {
+    fontSize: 13,
+    color: '#8E8E93',
+    marginTop: 4,
+    lineHeight: 18,
   },
   bottomPadding: {
     height: 100,

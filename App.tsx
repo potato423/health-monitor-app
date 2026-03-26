@@ -19,9 +19,9 @@ export default function App() {
           tabBarIcon: ({ focused, color, size }) => {
             let iconName: keyof typeof Ionicons.glyphMap;
 
-            if (route.name === '首页') {
+            if (route.name === '首页 Home') {
               iconName = focused ? 'home' : 'home-outline';
-            } else if (route.name === '记录') {
+            } else if (route.name === '记录 Records') {
               iconName = focused ? 'document-text' : 'document-text-outline';
             } else {
               iconName = focused ? 'analytics' : 'analytics-outline';
@@ -38,22 +38,22 @@ export default function App() {
             height: 88,
           },
           tabBarLabelStyle: {
-            fontSize: 12,
+            fontSize: 11,
             fontWeight: '500',
           },
           headerShown: false,
         })}
       >
         <Tab.Screen 
-          name="首页" 
+          name="首页 Home" 
           component={HomeScreen}
         />
         <Tab.Screen 
-          name="记录" 
+          name="记录 Records" 
           component={RecordScreen}
         />
         <Tab.Screen 
-          name="分析" 
+          name="分析 Analysis" 
           component={AnalysisScreen}
         />
       </Tab.Navigator>

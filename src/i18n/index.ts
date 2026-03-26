@@ -1,0 +1,83 @@
+export const i18n = {
+  zh: {
+    home: {
+      title: '首页',
+      greeting: '早上好',
+      scanFood: '扫描食物',
+      scanSubtitle: '拍照识别食物是否能吃',
+      fromAlbum: '从相册选择',
+      manualAdd: '手动添加',
+      todayTip: '今日建议：多摄入蔬菜，减少高嘌呤食物',
+    },
+    record: {
+      title: '饮食记录',
+      breakfast: '早餐',
+      lunch: '午餐',
+      dinner: '晚餐',
+      snack: '加餐',
+      addFood: '点击添加食物',
+    },
+    analysis: {
+      title: '分析',
+      healthScore: '今日健康评分',
+      indicators: '各项指标',
+      recommendations: '建议',
+      uricAcid: '尿酸',
+      bloodPressure: '血压',
+      bloodSugar: '血糖',
+      bloodFat: '血脂',
+      kidney: '肾脏',
+      weight: '体重',
+    },
+    common: {
+      canEat: '能吃',
+      caution: '谨慎吃',
+      avoid: '避免吃',
+      stable: '稳定',
+      normal: '正常',
+      slightlyHigh: '略高',
+    },
+  },
+  en: {
+    home: {
+      title: 'Home',
+      greeting: 'Good Morning',
+      scanFood: 'Scan Food',
+      scanSubtitle: 'Take a photo to check if it\'s safe to eat',
+      fromAlbum: 'From Album',
+      manualAdd: 'Manual Add',
+      todayTip: 'Today\'s tip: Eat more vegetables, reduce high-purine foods',
+    },
+    record: {
+      title: 'Records',
+      breakfast: 'Breakfast',
+      lunch: 'Lunch',
+      dinner: 'Dinner',
+      snack: 'Snack',
+      addFood: 'Tap to add food',
+    },
+    analysis: {
+      title: 'Analysis',
+      healthScore: 'Today\'s Health Score',
+      indicators: 'Health Indicators',
+      recommendations: 'Recommendations',
+      uricAcid: 'Uric Acid',
+      bloodPressure: 'Blood Pressure',
+      bloodSugar: 'Blood Sugar',
+      bloodFat: 'Blood Fat',
+      kidney: 'Kidney',
+      weight: 'Weight',
+    },
+    common: {
+      canEat: 'Safe',
+      caution: 'Caution',
+      avoid: 'Avoid',
+      stable: 'Stable',
+      normal: 'Normal',
+      slightlyHigh: 'Slightly High',
+    },
+  },
+};
+
+export type Language = 'zh' | 'en';
+export type Translations = typeof i18n.zh;
