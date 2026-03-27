@@ -40,6 +40,12 @@ class StorageService {
     await this.saveUserProfile(profile);
   }
 
+  async updatePreferences(prefs: Partial<UserHealthProfile['preferences']>): Promise<void> {
+    const profile = await this.getUserProfile();
+    profile.preferences = { ...profile.preferences, ...prefs };
+    await this.saveUserProfile(profile);
+  }
+
   async getInstallDate(): Promise<Date> {
     const raw = await AsyncStorage.getItem(KEYS.installDate);
     if (raw) return new Date(raw);
@@ -60,10 +66,11 @@ class StorageService {
   private defaultProfile(): UserHealthProfile {
     return {
       userId: Math.random().toString(36).slice(2),
-      conditions: ['hyperuricemia'],
+      conditions: [],
       currentMetrics: {},
       preferences: {
-        reminders: true,
+        reminders: false,
+        waterReminder: false,
         reminderInterval: 8,
         theme: 'light',
       },

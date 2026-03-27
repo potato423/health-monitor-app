@@ -16,6 +16,7 @@ import OnboardingScreen from './src/screens/OnboardingScreen';
 
 import { Colors } from './src/constants/colors';
 import { storageService } from './src/services/storage';
+import { databaseService } from './src/services/database';
 import { FoodAnalysisResult } from './src/services/foodRecognition';
 
 export type RootStackParamList = {
@@ -74,7 +75,9 @@ function MainTabs() {
 
 function AppNavigator() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false, presentation: 'modal', gestureEnabled: true }}>
+    <Stack.Navigator
+      screenOptions={{ headerShown: false, presentation: 'modal', gestureEnabled: true }}
+    >
       <Stack.Screen name="Main" component={MainTabs} options={{ presentation: 'card' }} />
       <Stack.Screen name="FoodResult" component={FoodResultScreen} />
       <Stack.Screen name="Profile" component={ProfileScreen} />
@@ -88,10 +91,14 @@ export default function App() {
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
-    storageService.isOnboardingDone().then((done) => {
+    async function bootstrap() {
+      // Always init SQLite first so every subsequent write succeeds
+      await databaseService.init();
+      const done = await storageService.isOnboardingDone();
       setShowOnboarding(!done);
       setReady(true);
-    });
+    }
+    bootstrap().catch(console.error);
   }, []);
 
   if (!ready) {
@@ -105,14 +112,15 @@ export default function App() {
   return (
     <NavigationContainer>
       <StatusBar style="dark" />
-      {showOnboarding
-        ? <OnboardingStack.Navigator screenOptions={{ headerShown: false }}>
-            <OnboardingStack.Screen name="Onboarding">
-              {() => <OnboardingScreen onDone={() => setShowOnboarding(false)} />}
-            </OnboardingStack.Screen>
-          </OnboardingStack.Navigator>
-        : <AppNavigator />
-      }
+      {showOnboarding ? (
+        <OnboardingStack.Navigator screenOptions={{ headerShown: false }}>
+          <OnboardingStack.Screen name="Onboarding">
+            {() => <OnboardingScreen onDone={() => setShowOnboarding(false)} />}
+          </OnboardingStack.Screen>
+        </OnboardingStack.Navigator>
+      ) : (
+        <AppNavigator />
+      )}
     </NavigationContainer>
   );
 }

@@ -41,25 +41,28 @@ export interface UserHealthProfile {
   preferences: UserPreferences;
 }
 
-export type HealthCondition = 
-  | 'hyperuricemia' 
-  | 'hypertension' 
-  | 'diabetes' 
-  | 'hyperlipidemia' 
-  | 'kidneyIssues' 
+export type HealthCondition =
+  | 'hyperuricemia'
+  | 'hypertension'
+  | 'diabetes'
+  | 'hyperlipidemia'
+  | 'kidneyIssues'
   | 'obesity';
 
+// Flat fields for easier storage and display
 export interface HealthMetrics {
-  uricAcid?: number;
-  bloodPressure?: { systolic: number; diastolic: number };
-  bloodSugar?: number;
-  bloodFat?: { cholesterol: number; triglycerides: number };
-  weight?: number;
-  height?: number;
+  uricAcid?: number;       // μmol/L
+  systolic?: number;       // mmHg
+  diastolic?: number;      // mmHg
+  bloodSugar?: number;     // mmol/L
+  bloodFat?: number;       // mmol/L (total cholesterol)
+  weight?: number;         // kg
+  height?: number;         // cm
 }
 
 export interface UserPreferences {
   reminders: boolean;
-  reminderInterval: number; // 小时
+  waterReminder: boolean;
+  reminderInterval: number; // hours
   theme: 'light' | 'dark';
 }

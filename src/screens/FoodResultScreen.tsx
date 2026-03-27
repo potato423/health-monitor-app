@@ -135,8 +135,7 @@ export default function FoodResultScreen() {
     desc: '',
   }));
 
-  const handleRecord = async () => {
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  const doRecord = async (mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack') => {
     setRecording(true);
     try {
       await mealService.recordMeal(
@@ -157,11 +156,13 @@ export default function FoodResultScreen() {
           alternatives: food.alternatives,
           cookingTips: food.cookingTips,
         }],
-        'lunch'
+        mealType
       );
+      const mealLabel = { breakfast: '早餐', lunch: '午餐', dinner: '晚餐', snack: '加餐' }[mealType];
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert(
-        '记录成功 ✓',
-        `已将 ${food.name}（${servingOptions[selectedServing]}g）添加到饮食记录`,
+        '记录成功',
+        `已将 ${food.name}（${servingOptions[selectedServing]}g）添加到${mealLabel}`,
         [{ text: '好的', onPress: () => navigation.goBack() }]
       );
     } catch {
@@ -169,6 +170,21 @@ export default function FoodResultScreen() {
     } finally {
       setRecording(false);
     }
+  };
+
+  const handleRecord = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Alert.alert(
+      '添加到哪一餐？',
+      undefined,
+      [
+        { text: '早餐', onPress: () => doRecord('breakfast') },
+        { text: '午餐', onPress: () => doRecord('lunch') },
+        { text: '晚餐', onPress: () => doRecord('dinner') },
+        { text: '加餐', onPress: () => doRecord('snack') },
+        { text: '取消', style: 'cancel' },
+      ]
+    );
   };
 
   return (
