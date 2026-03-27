@@ -189,7 +189,7 @@ const CONDITION_LABELS: Record<string, string> = {
 class MedicalAPIService {
   private readonly apiKey = 'sk-jzkqcfvzwlxteqxeibrzjvhmyxwzncijgplgghnwdajwlrxa';
   private readonly endpoint = 'https://api.siliconflow.cn/v1/chat/completions';
-  private readonly model = 'Qwen/Qwen2.5-VL-7B-Instruct';
+  private readonly model = 'Qwen/Qwen3-VL-8B-Instruct';
   private readonly mockMode = false;
 
   async analyzeFood(imageBase64: string, userProfile: UserHealthProfile): Promise<FoodAnalysisResult> {
