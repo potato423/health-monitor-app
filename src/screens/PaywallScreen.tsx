@@ -1,105 +1,88 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  SafeAreaView,
-  ScrollView,
-  Alert,
-  Animated,
-  Dimensions,
-  Linking,
+  View, Text, TouchableOpacity, StyleSheet,
+  SafeAreaView, ScrollView, Alert, Animated, Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { Colors, Spacing, Radius, Shadow } from '../constants/colors';
-
-const { width, height } = Dimensions.get('window');
+import * as Haptics from 'expo-haptics';
+import { Colors, Spacing, Radius, Shadow, Type } from '../constants/colors';
+import { paymentService } from '../services/paymentService';
 
 const FEATURES = [
-  { icon: 'camera', label: '无限食物识别', desc: '每日无限次拍照识别' },
-  { icon: 'analytics', label: '完整健康分析', desc: '周/月趋势图表与洞察' },
-  { icon: 'bulb', label: 'AI 个性化建议', desc: '根据病情定制饮食方案' },
-  { icon: 'notifications', label: '智能提醒', desc: '三餐记录与饮水提醒' },
-  { icon: 'document-text', label: '数据导出', desc: '导出 PDF 健康报告' },
-  { icon: 'shield-checkmark', label: '数据安全', desc: '端对端加密保护隐私' },
+  { icon: 'camera',            title: 'Unlimited Food Scans',      desc: 'Scan every meal — no daily cap' },
+  { icon: 'bar-chart',         title: 'Full Health Analytics',     desc: 'Weekly & monthly trend charts' },
+  { icon: 'bulb',              title: 'AI Personalized Advice',    desc: 'Tailored to your conditions' },
+  { icon: 'notifications',     title: 'Smart Meal Reminders',      desc: 'Custom breakfast, lunch & dinner alerts' },
+  { icon: 'document-text',     title: 'PDF Health Reports',        desc: 'Share with your doctor anytime' },
+  { icon: 'shield-checkmark',  title: 'End-to-End Privacy',        desc: 'Your data never leaves your device' },
 ];
 
 const PLANS = [
-  {
-    id: 'monthly',
-    label: '月度订阅',
-    price: '$15',
-    period: '/ 月',
-    pricePerMonth: '$15 / 月',
-    badge: null,
-    highlight: false,
-  },
-  {
-    id: 'yearly',
-    label: '年度订阅',
-    price: '$108',
-    period: '/ 年',
-    pricePerMonth: '$9 / 月',
-    badge: '省 40%',
-    highlight: true,
-  },
-];
+  { id: 'monthly', label: 'Monthly', price: '$14.99', sub: 'per month', badge: null,    highlight: false },
+  { id: 'yearly',  label: 'Annual',  price: '$89.99', sub: '$7.50 / mo', badge: 'Save 50%', highlight: true  },
+] as const;
 
 export default function PaywallScreen() {
   const navigation = useNavigation();
-  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
+  const [plan, setPlan]       = useState<'monthly' | 'yearly'>('yearly');
   const [loading, setLoading] = useState(false);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(30)).current;
+
+  const fadeAnim  = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(32)).current;
 
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: 0, duration: 500, useNativeDriver: true }),
+      Animated.timing(fadeAnim,  { toValue: 1, duration: 500, useNativeDriver: true }),
+      Animated.spring(slideAnim, { toValue: 0, tension: 70, friction: 10, useNativeDriver: true }),
     ]).start();
   }, []);
 
   const handlePurchase = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoading(true);
-    try {
-      await new Promise((r) => setTimeout(r, 1500));
-      Alert.alert('购买成功', '感谢您的订阅！', [
-        { text: '开始使用', onPress: () => navigation.goBack() },
+    const result = await paymentService.purchase(
+      plan === 'monthly' ? 'com.healthmonitor.chroniccare.monthly' : 'com.healthmonitor.chroniccare.yearly'
+    );
+    setLoading(false);
+    if (result.success) {
+      Alert.alert('Welcome to Pro! 🎉', 'All features are now unlocked.', [
+        { text: 'Get Started', onPress: () => navigation.goBack() },
       ]);
-    } catch {
-      Alert.alert('购买失败', '请重试或联系客服');
-    } finally {
-      setLoading(false);
+    } else {
+      Alert.alert('Purchase Failed', result.error ?? 'Please try again.');
     }
   };
 
   const handleRestore = async () => {
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 1000));
+    const result = await paymentService.restorePurchases();
     setLoading(false);
-    Alert.alert('未找到购买记录', '请确认登录了正确的 Apple ID');
+    Alert.alert(
+      result.success ? 'Restored!' : 'Nothing to Restore',
+      result.success ? 'Your subscription has been restored.' : 'No previous purchase found for this Apple ID.'
+    );
   };
 
-  const activePlan = PLANS.find((p) => p.id === selectedPlan)!;
+  const activePlan = PLANS.find(p => p.id === plan)!;
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Close */}
-      <TouchableOpacity style={styles.closeButton} onPress={() => navigation.goBack()} activeOpacity={0.7}>
-        <Ionicons name="close" size={20} color={Colors.textSecondary} />
+      <TouchableOpacity style={styles.closeBtn} onPress={() => navigation.goBack()} activeOpacity={0.7}>
+        <Ionicons name="close" size={18} color={Colors.textSecondary} />
       </TouchableOpacity>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+
         {/* Hero */}
         <Animated.View style={[styles.hero, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
-          <View style={styles.heroIconWrap}>
-            <Ionicons name="heart" size={40} color="#FFFFFF" />
+          <View style={styles.heroIcon}>
+            <Ionicons name="heart" size={42} color="#fff" />
           </View>
-          <Text style={styles.heroTitle}>解锁完整健康管理</Text>
-          <Text style={styles.heroSubtitle}>
-            AI 驱动的慢性病饮食助手{'\n'}帮助你科学管控每一口食物
+          <Text style={styles.heroTitle}>Take Control of{'\n'}Your Health</Text>
+          <Text style={styles.heroSub}>
+            AI-powered chronic disease diet tracking{'\n'}designed for real results
           </Text>
         </Animated.View>
 
@@ -109,85 +92,79 @@ export default function PaywallScreen() {
             <View key={i}>
               <View style={styles.featureRow}>
                 <View style={styles.featureIconWrap}>
-                  <Ionicons name={f.icon as any} size={18} color={Colors.blue} />
+                  <Ionicons name={f.icon as any} size={18} color={Colors.primary} />
                 </View>
                 <View style={styles.featureText}>
-                  <Text style={styles.featureLabel}>{f.label}</Text>
+                  <Text style={styles.featureTitle}>{f.title}</Text>
                   <Text style={styles.featureDesc}>{f.desc}</Text>
                 </View>
                 <Ionicons name="checkmark-circle" size={20} color={Colors.green} />
               </View>
-              {i < FEATURES.length - 1 && <View style={styles.featureDivider} />}
+              {i < FEATURES.length - 1 && <View style={[styles.featureDiv, { marginLeft: 36 + Spacing.md + Spacing.lg }]} />}
             </View>
           ))}
         </Animated.View>
 
         {/* Plan Selector */}
         <View style={styles.plansRow}>
-          {PLANS.map((plan) => (
+          {PLANS.map(p => (
             <TouchableOpacity
-              key={plan.id}
-              style={[styles.planCard, plan.highlight && styles.planCardHighlight, selectedPlan === plan.id && styles.planCardSelected]}
-              onPress={() => setSelectedPlan(plan.id as 'monthly' | 'yearly')}
+              key={p.id}
+              style={[styles.planCard, p.highlight && styles.planCardHL, plan === p.id && styles.planCardSel]}
+              onPress={async () => { await Haptics.selectionAsync(); setPlan(p.id); }}
               activeOpacity={0.8}
             >
-              {plan.badge && (
+              {p.badge && (
                 <View style={styles.planBadge}>
-                  <Text style={styles.planBadgeText}>{plan.badge}</Text>
+                  <Text style={styles.planBadgeText}>{p.badge}</Text>
                 </View>
               )}
-              {selectedPlan === plan.id && (
+              {plan === p.id && (
                 <View style={styles.planCheck}>
-                  <Ionicons name="checkmark-circle" size={20} color={Colors.blue} />
+                  <Ionicons name="checkmark-circle" size={20} color={Colors.primary} />
                 </View>
               )}
-              <Text style={[styles.planLabel, selectedPlan === plan.id && styles.planLabelSelected]}>
-                {plan.label}
-              </Text>
-              <View style={styles.planPriceRow}>
-                <Text style={[styles.planPrice, selectedPlan === plan.id && styles.planPriceSelected]}>
-                  {plan.price}
-                </Text>
-                <Text style={styles.planPeriod}>{plan.period}</Text>
-              </View>
-              <Text style={styles.planPerMonth}>{plan.pricePerMonth}</Text>
+              <Text style={[styles.planLabel, plan === p.id && { color: Colors.primary }]}>{p.label}</Text>
+              <Text style={[styles.planPrice, plan === p.id && { color: Colors.primary }]}>{p.price}</Text>
+              <Text style={styles.planSub}>{p.sub}</Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* Trial Info */}
-        <View style={styles.trialNote}>
-          <Ionicons name="information-circle-outline" size={15} color={Colors.textSecondary} />
-          <Text style={styles.trialNoteText}>
-            订阅将在试用结束后自动续费。可随时在 Apple ID 设置中取消。
+        {/* Legal note */}
+        <View style={styles.legalNote}>
+          <Ionicons name="information-circle-outline" size={14} color={Colors.textTertiary} />
+          <Text style={styles.legalText}>
+            Subscription auto-renews. Cancel anytime in your Apple ID settings before the renewal date.
           </Text>
         </View>
+
       </ScrollView>
 
-      {/* Bottom CTA */}
-      <View style={styles.bottomCTA}>
+      {/* CTA */}
+      <View style={styles.cta}>
         <TouchableOpacity
-          style={[styles.purchaseButton, loading && styles.purchaseButtonLoading]}
+          style={[styles.ctaBtn, loading && { opacity: 0.7 }]}
           onPress={handlePurchase}
           disabled={loading}
-          activeOpacity={0.85}
+          activeOpacity={0.88}
         >
-          <Text style={styles.purchaseButtonText}>
-            {loading ? '处理中...' : `订阅 ${activePlan.label} · ${activePlan.price}`}
+          <Text style={styles.ctaBtnText}>
+            {loading ? 'Processing…' : `Start with ${activePlan.label} · ${activePlan.price}`}
           </Text>
         </TouchableOpacity>
 
         <View style={styles.linksRow}>
           <TouchableOpacity onPress={handleRestore} activeOpacity={0.7}>
-            <Text style={styles.linkText}>恢复购买</Text>
+            <Text style={styles.linkText}>Restore Purchase</Text>
           </TouchableOpacity>
-          <Text style={styles.linkDot}>·</Text>
+          <Text style={styles.dot}>·</Text>
           <TouchableOpacity onPress={() => Linking.openURL('https://example.com/privacy')} activeOpacity={0.7}>
-            <Text style={styles.linkText}>隐私政策</Text>
+            <Text style={styles.linkText}>Privacy</Text>
           </TouchableOpacity>
-          <Text style={styles.linkDot}>·</Text>
+          <Text style={styles.dot}>·</Text>
           <TouchableOpacity onPress={() => Linking.openURL('https://example.com/terms')} activeOpacity={0.7}>
-            <Text style={styles.linkText}>服务条款</Text>
+            <Text style={styles.linkText}>Terms</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -197,115 +174,35 @@ export default function PaywallScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
-  closeButton: {
-    position: 'absolute',
-    top: 56,
-    right: Spacing.xl,
-    zIndex: 10,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: Colors.systemFill,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  scrollContent: { paddingBottom: 20 },
-  hero: { alignItems: 'center', paddingTop: 56, paddingHorizontal: Spacing.xl, paddingBottom: Spacing.xl },
-  heroIconWrap: {
-    width: 80, height: 80, borderRadius: 24,
-    backgroundColor: Colors.blue,
-    alignItems: 'center', justifyContent: 'center',
-    marginBottom: Spacing.lg,
-    ...Shadow.button,
-  },
-  heroTitle: { fontSize: 28, fontWeight: '800', color: Colors.text, textAlign: 'center', letterSpacing: 0.3 },
-  heroSubtitle: { fontSize: 15, color: Colors.textSecondary, textAlign: 'center', marginTop: Spacing.sm, lineHeight: 22 },
-  featuresCard: {
-    backgroundColor: Colors.secondaryBackground,
-    marginHorizontal: Spacing.xl,
-    borderRadius: Radius.xl,
-    overflow: 'hidden',
-    ...Shadow.card,
-  },
+  closeBtn: { position: 'absolute', top: 56, right: Spacing.xl, zIndex: 10, width: 32, height: 32, borderRadius: 16, backgroundColor: Colors.systemFill, alignItems: 'center', justifyContent: 'center' },
+  scroll: { paddingBottom: 20 },
+  hero: { alignItems: 'center', paddingTop: 60, paddingHorizontal: Spacing.xl, paddingBottom: Spacing.xxl },
+  heroIcon: { width: 84, height: 84, borderRadius: 26, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.lg, ...Shadow.button },
+  heroTitle: { ...Type.title1, color: Colors.text, textAlign: 'center', letterSpacing: -0.5 },
+  heroSub: { ...Type.body, color: Colors.textSecondary, textAlign: 'center', marginTop: Spacing.md, lineHeight: 23 },
+  featuresCard: { backgroundColor: Colors.cardBackground, marginHorizontal: Spacing.xl, borderRadius: Radius.xxl, overflow: 'hidden', ...Shadow.card },
   featureRow: { flexDirection: 'row', alignItems: 'center', padding: Spacing.lg },
-  featureIconWrap: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: Colors.blue + '15',
-    alignItems: 'center', justifyContent: 'center', marginRight: Spacing.md,
-  },
+  featureIconWrap: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.primary + '15', alignItems: 'center', justifyContent: 'center', marginRight: Spacing.md },
   featureText: { flex: 1 },
-  featureLabel: { fontSize: 15, fontWeight: '600', color: Colors.text },
-  featureDesc: { fontSize: 12, color: Colors.textSecondary, marginTop: 1 },
-  featureDivider: { height: 0.5, backgroundColor: Colors.separator, marginLeft: 36 + Spacing.md + Spacing.lg },
-  plansRow: {
-    flexDirection: 'row',
-    paddingHorizontal: Spacing.xl,
-    marginTop: Spacing.xl,
-    gap: Spacing.md,
-  },
-  planCard: {
-    flex: 1,
-    backgroundColor: Colors.secondaryBackground,
-    borderRadius: Radius.xl,
-    padding: Spacing.lg,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    position: 'relative',
-    overflow: 'hidden',
-    ...Shadow.card,
-  },
-  planCardHighlight: { borderColor: Colors.blue + '40' },
-  planCardSelected: { borderColor: Colors.blue },
-  planBadge: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    backgroundColor: Colors.blue,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderBottomLeftRadius: Radius.sm,
-  },
-  planBadgeText: { fontSize: 11, fontWeight: '700', color: '#FFFFFF' },
+  featureTitle: { ...Type.callout, fontWeight: '600', color: Colors.text },
+  featureDesc: { ...Type.caption, color: Colors.textSecondary, marginTop: 1 },
+  featureDiv: { height: 0.5, backgroundColor: Colors.separator },
+  plansRow: { flexDirection: 'row', paddingHorizontal: Spacing.xl, marginTop: Spacing.xl, gap: Spacing.md },
+  planCard: { flex: 1, backgroundColor: Colors.cardBackground, borderRadius: Radius.xxl, padding: Spacing.lg, borderWidth: 2, borderColor: 'transparent', position: 'relative', overflow: 'hidden', ...Shadow.card },
+  planCardHL: { borderColor: Colors.primary + '40' },
+  planCardSel: { borderColor: Colors.primary },
+  planBadge: { position: 'absolute', top: 0, right: 0, backgroundColor: Colors.primary, paddingHorizontal: Spacing.sm, paddingVertical: 4, borderBottomLeftRadius: Radius.md },
+  planBadgeText: { ...Type.caption, fontWeight: '700', color: '#fff' },
   planCheck: { position: 'absolute', top: Spacing.sm, left: Spacing.sm },
-  planLabel: { fontSize: 13, color: Colors.textSecondary, fontWeight: '500', marginTop: 4 },
-  planLabelSelected: { color: Colors.blue },
-  planPriceRow: { flexDirection: 'row', alignItems: 'baseline', marginTop: Spacing.sm },
-  planPrice: { fontSize: 28, fontWeight: '800', color: Colors.text },
-  planPriceSelected: { color: Colors.blue },
-  planPeriod: { fontSize: 13, color: Colors.textSecondary, marginLeft: 2 },
-  planPerMonth: { fontSize: 12, color: Colors.textSecondary, marginTop: 4 },
-  trialNote: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingHorizontal: Spacing.xl,
-    marginTop: Spacing.lg,
-    gap: Spacing.xs,
-  },
-  trialNoteText: { flex: 1, fontSize: 12, color: Colors.textSecondary, lineHeight: 18 },
-  bottomCTA: {
-    paddingHorizontal: Spacing.xl,
-    paddingBottom: Spacing.lg,
-    paddingTop: Spacing.md,
-    backgroundColor: Colors.background,
-    borderTopWidth: 0.5,
-    borderTopColor: Colors.separator,
-  },
-  purchaseButton: {
-    backgroundColor: Colors.blue,
-    borderRadius: Radius.pill,
-    paddingVertical: 17,
-    alignItems: 'center',
-    ...Shadow.button,
-  },
-  purchaseButtonLoading: { opacity: 0.7 },
-  purchaseButtonText: { fontSize: 17, fontWeight: '700', color: '#FFFFFF', letterSpacing: 0.3 },
-  linksRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: Spacing.md,
-    gap: Spacing.sm,
-  },
-  linkText: { fontSize: 12, color: Colors.textSecondary },
-  linkDot: { fontSize: 12, color: Colors.textTertiary },
+  planLabel: { ...Type.subhead, color: Colors.textSecondary, marginTop: Spacing.xs },
+  planPrice: { fontSize: 28, fontWeight: '800', color: Colors.text, marginTop: Spacing.xs },
+  planSub: { ...Type.caption, color: Colors.textSecondary, marginTop: 2 },
+  legalNote: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: Spacing.xl, marginTop: Spacing.lg, gap: Spacing.xs },
+  legalText: { flex: 1, ...Type.caption, color: Colors.textTertiary, lineHeight: 17 },
+  cta: { paddingHorizontal: Spacing.xl, paddingBottom: Spacing.xl, paddingTop: Spacing.md, backgroundColor: Colors.background, borderTopWidth: 0.5, borderTopColor: Colors.separator },
+  ctaBtn: { backgroundColor: Colors.primary, borderRadius: Radius.pill, paddingVertical: 17, alignItems: 'center', ...Shadow.button },
+  ctaBtnText: { fontSize: 17, fontWeight: '700', color: '#fff', letterSpacing: -0.2 },
+  linksRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: Spacing.md, gap: Spacing.sm },
+  linkText: { ...Type.footnote, color: Colors.textSecondary },
+  dot: { ...Type.footnote, color: Colors.textTertiary },
 });

@@ -1,47 +1,32 @@
-import { FoodItem, HealthCondition, UserHealthProfile } from '../types';
+import { UserHealthProfile } from '../types';
+import { FoodItem } from '../types';
 
 // ---------------------------------------------------------------------------
-// Types
+// Public types
 // ---------------------------------------------------------------------------
 
 export interface FoodAnalysisResult extends FoodItem {
   nameEn: string;
   reason: string;
+  cookingAdvice: string;
   servingOptions: number[];
   alternativeDetails: {
     name: string;
+    nameEn: string;
     status: 'green' | 'yellow' | 'red';
     desc: string;
   }[];
 }
 
-interface MockFoodData {
-  name: string;
-  nameEn: string;
-  calories: number;
-  protein: number;
-  fat: number;
-  carbs: number;
-  sodium: number;
-  potassium: number;
-  phosphorus: number;
-  purines: number;
-  healthStatus: 'green' | 'yellow' | 'red';
-  quantitySuggestion: 'small' | 'moderate' | 'normal';
-  reason: string;
-  servingOptions: number[];
-  alternatives: string[];
-  alternativeDetails: { name: string; status: 'green' | 'yellow' | 'red'; desc: string }[];
-  cookingTips: string[];
-}
+// ---------------------------------------------------------------------------
+// Internal mock data (English-first, international)
+// ---------------------------------------------------------------------------
 
-// ---------------------------------------------------------------------------
-// Mock food database
-// ---------------------------------------------------------------------------
+interface MockFoodData extends Omit<FoodAnalysisResult, 'id'> {}
 
 const MOCK_FOODS: MockFoodData[] = [
   {
-    name: '红烧肉',
+    name: 'Braised Pork Belly',
     nameEn: 'Braised Pork Belly',
     calories: 395,
     protein: 13.7,
@@ -52,19 +37,25 @@ const MOCK_FOODS: MockFoodData[] = [
     phosphorus: 180,
     purines: 132,
     healthStatus: 'red',
+    healthScore: 3.2,
     quantitySuggestion: 'small',
-    reason: '嘌呤含量高（132mg/100g），对尿酸代谢影响大；脂肪含量高，不利于血脂控制',
+    reason: 'High in purines (132 mg/100g) which may spike uric acid levels. Excessive saturated fat can worsen cholesterol and cardiovascular health.',
+    cookingAdvice: 'Blanch before braising to reduce purines. Reduce soy sauce to lower sodium. Pair with bitter melon or celery to support uric acid metabolism.',
     servingOptions: [25, 50, 75, 100],
-    alternatives: ['清蒸鱼', '白切鸡', '豆腐'],
+    alternatives: ['Steamed Fish', 'Chicken Breast', 'Tofu'],
     alternativeDetails: [
-      { name: '清蒸鱼', status: 'green', desc: '低嘌呤、高蛋白，适合尿酸高人群' },
-      { name: '鸡胸肉', status: 'green', desc: '低脂低嘌呤，优质蛋白来源' },
-      { name: '豆腐', status: 'yellow', desc: '植物蛋白，嘌呤中等，适量可食' },
+      { name: 'Steamed Fish', nameEn: 'Steamed Fish', status: 'green', desc: 'Low-purine, high-protein — ideal for hyperuricemia' },
+      { name: 'Chicken Breast', nameEn: 'Chicken Breast', status: 'green', desc: 'Lean protein with minimal purines and saturated fat' },
+      { name: 'Tofu', nameEn: 'Tofu', status: 'yellow', desc: 'Plant-based protein; moderate purines — eat in moderation' },
     ],
-    cookingTips: ['烹饪前先焯水可去除部分嘌呤', '减少酱油用量降低钠摄入', '搭配苦瓜或芹菜有助尿酸代谢'],
+    cookingTips: [
+      'Blanch in boiling water first to remove excess purines',
+      'Cut sodium by halving the soy sauce',
+      'Add bitter melon or celery to support uric acid clearance',
+    ],
   },
   {
-    name: '清炒西兰花',
+    name: 'Stir-fried Broccoli',
     nameEn: 'Stir-fried Broccoli',
     calories: 55,
     protein: 4.2,
@@ -75,18 +66,24 @@ const MOCK_FOODS: MockFoodData[] = [
     phosphorus: 70,
     purines: 25,
     healthStatus: 'green',
+    healthScore: 9.1,
     quantitySuggestion: 'normal',
-    reason: '低热量、低嘌呤，富含膳食纤维和维生素 C，非常适合慢性病人群',
+    reason: 'Excellent choice — low in calories and purines, rich in fiber and vitamin C. Supports immune function and gut health.',
+    cookingAdvice: 'Flash-fry over high heat to preserve nutrients. Minimal salt needed — a squeeze of lemon adds brightness.',
     servingOptions: [100, 150, 200, 250],
-    alternatives: ['蒸西兰花', '西兰花炒虾仁'],
+    alternatives: ['Spinach', 'Kale', 'Bok Choy'],
     alternativeDetails: [
-      { name: '生菜沙拉', status: 'green', desc: '同样低嘌呤，生吃营养损失更少' },
-      { name: '菠菜', status: 'green', desc: '富含叶酸，有助降低血压' },
+      { name: 'Spinach', nameEn: 'Spinach', status: 'green', desc: 'Rich in folate and iron; helps manage blood pressure' },
+      { name: 'Kale', nameEn: 'Kale', status: 'green', desc: 'Dense in antioxidants and fiber' },
     ],
-    cookingTips: ['快炒保留更多营养素', '少盐少油，清淡更健康', '搭配蒜蓉提味无需加盐'],
+    cookingTips: [
+      'High-heat flash fry preserves the most nutrients',
+      'Use minimal oil and no added salt',
+      'A pinch of garlic adds flavor without sodium',
+    ],
   },
   {
-    name: '宫保鸡丁',
+    name: 'Kung Pao Chicken',
     nameEn: 'Kung Pao Chicken',
     calories: 280,
     protein: 22.4,
@@ -97,19 +94,25 @@ const MOCK_FOODS: MockFoodData[] = [
     phosphorus: 150,
     purines: 80,
     healthStatus: 'yellow',
+    healthScore: 5.8,
     quantitySuggestion: 'moderate',
-    reason: '钠含量偏高（720mg/份），对高血压人群需注意；嘌呤含量适中，尿酸高者少量可食',
+    reason: 'Sodium is high at 720 mg per serving — a concern for hypertension. Moderate purines make it acceptable for gout in small amounts.',
+    cookingAdvice: 'Reduce soy sauce and skip the added salt. Substitute chicken breast for thigh to lower fat content.',
     servingOptions: [50, 100, 150, 200],
-    alternatives: ['白灼鸡胸肉', '清蒸鸡腿'],
+    alternatives: ['Poached Chicken', 'Steamed Fish', 'Stir-fried Shrimp'],
     alternativeDetails: [
-      { name: '白灼鸡胸肉', status: 'green', desc: '低脂低钠，蛋白质丰富' },
-      { name: '蒸鱼', status: 'green', desc: '低热量优质蛋白' },
-      { name: '清炒虾仁', status: 'yellow', desc: '嘌呤略高，适量可食' },
+      { name: 'Poached Chicken', nameEn: 'Poached Chicken', status: 'green', desc: 'Low sodium and fat, high lean protein' },
+      { name: 'Steamed Fish', nameEn: 'Steamed Fish', status: 'green', desc: 'Omega-3 rich, low in purines' },
+      { name: 'Stir-fried Shrimp', nameEn: 'Stir-fried Shrimp', status: 'yellow', desc: 'Slightly elevated purines — keep portions modest' },
     ],
-    cookingTips: ['减少辣椒和酱油用量', '用鸡胸肉替代鸡腿肉更低脂', '花生可少放或不放'],
+    cookingTips: [
+      'Halve the soy sauce to significantly cut sodium',
+      'Use chicken breast instead of thigh for less fat',
+      'Reduce or omit peanuts to lower calorie density',
+    ],
   },
   {
-    name: '白米饭',
+    name: 'Steamed White Rice',
     nameEn: 'Steamed White Rice',
     calories: 116,
     protein: 2.6,
@@ -120,168 +123,258 @@ const MOCK_FOODS: MockFoodData[] = [
     phosphorus: 62,
     purines: 18,
     healthStatus: 'yellow',
+    healthScore: 6.0,
     quantitySuggestion: 'moderate',
-    reason: '血糖生成指数较高（GI≈70），糖尿病或血糖偏高人群建议控制份量',
+    reason: 'High glycemic index (GI ≈ 70) may cause rapid blood sugar spikes. Suitable in moderation for most people, but diabetics should watch portion sizes.',
+    cookingAdvice: 'Mix with brown rice (1:1) to lower GI. Cooling and reheating increases resistant starch content.',
     servingOptions: [75, 100, 150, 200],
-    alternatives: ['糙米饭', '燕麦粥', '荞麦面'],
+    alternatives: ['Brown Rice', 'Quinoa', 'Cauliflower Rice'],
     alternativeDetails: [
-      { name: '糙米饭', status: 'green', desc: 'GI 更低，膳食纤维更丰富' },
-      { name: '燕麦粥', status: 'green', desc: '有助于控制血糖和血脂' },
-      { name: '荞麦面', status: 'green', desc: '低 GI，适合糖尿病人群' },
+      { name: 'Brown Rice', nameEn: 'Brown Rice', status: 'green', desc: 'Lower GI, more fiber and micronutrients' },
+      { name: 'Quinoa', nameEn: 'Quinoa', status: 'green', desc: 'Complete protein, low GI — excellent for diabetics' },
+      { name: 'Cauliflower Rice', nameEn: 'Cauliflower Rice', status: 'green', desc: 'Very low carb — ideal for blood sugar control' },
     ],
-    cookingTips: ['可混入糙米按 1:1 比例降低 GI', '冷却后复热可增加抗性淀粉', '减少每餐份量，搭配更多蔬菜'],
+    cookingTips: [
+      'Blend 1:1 with brown rice to lower the glycemic load',
+      'Cook ahead and refrigerate — reheating boosts resistant starch',
+      'Keep portions to ¾ cup and load the rest of the plate with vegetables',
+    ],
+  },
+  {
+    name: 'Greek Salad',
+    nameEn: 'Greek Salad',
+    calories: 130,
+    protein: 5.2,
+    fat: 9.8,
+    carbs: 7.4,
+    sodium: 480,
+    potassium: 350,
+    phosphorus: 90,
+    purines: 12,
+    healthStatus: 'green',
+    healthScore: 8.4,
+    quantitySuggestion: 'normal',
+    reason: 'Excellent for most chronic conditions — very low purines, moderate healthy fats from olive oil, and rich in antioxidants.',
+    cookingAdvice: 'Use less feta to reduce sodium. Drizzle with extra virgin olive oil for anti-inflammatory benefits.',
+    servingOptions: [150, 200, 250, 300],
+    alternatives: ['Caesar Salad (no croutons)', 'Caprese Salad'],
+    alternativeDetails: [
+      { name: 'Caprese Salad', nameEn: 'Caprese Salad', status: 'green', desc: 'Fresh tomatoes and mozzarella — low purine, heart-healthy' },
+    ],
+    cookingTips: [
+      'Reduce feta quantity to halve the sodium',
+      'Extra virgin olive oil provides anti-inflammatory monounsaturated fats',
+      'Add avocado for extra potassium and healthy fats',
+    ],
   },
 ];
+
+// ---------------------------------------------------------------------------
+// Condition label map (English for international prompt)
+// ---------------------------------------------------------------------------
+
+const CONDITION_LABELS: Record<string, string> = {
+  hyperuricemia:  'hyperuricemia / gout (high uric acid)',
+  hypertension:   'hypertension (high blood pressure)',
+  diabetes:       'diabetes / blood sugar management',
+  hyperlipidemia: 'hyperlipidemia (high cholesterol / triglycerides)',
+  kidneyIssues:   'chronic kidney disease',
+  obesity:        'obesity / weight management',
+};
 
 // ---------------------------------------------------------------------------
 // Service
 // ---------------------------------------------------------------------------
 
 class MedicalAPIService {
-  // Set to false and provide OPENAI_API_KEY to use real GPT-4o Vision.
-  private readonly mockMode = true;
+  private readonly apiKey = 'sk-jzkqcfvzwlxteqxeibrzjvhmyxwzncijgplgghnwdajwlrxa';
+  private readonly endpoint = 'https://api.siliconflow.cn/v1/chat/completions';
+  private readonly model = 'Qwen/Qwen2.5-VL-7B-Instruct';
+  private readonly mockMode = false;
 
   async analyzeFood(imageBase64: string, userProfile: UserHealthProfile): Promise<FoodAnalysisResult> {
-    if (this.mockMode) {
+    if (this.mockMode) return this.mockAnalyze(userProfile);
+    try {
+      return await this.realAnalyze(imageBase64, userProfile);
+    } catch (err) {
+      console.warn('[medicalAPI] Vision API failed, falling back to mock:', err);
       return this.mockAnalyze(userProfile);
     }
-    return this.realAnalyze(imageBase64, userProfile);
   }
+
+  // ── Mock ─────────────────────────────────────────────────────────────────
 
   private async mockAnalyze(userProfile: UserHealthProfile): Promise<FoodAnalysisResult> {
     await new Promise((r) => setTimeout(r, 1800));
     const food = MOCK_FOODS[Math.floor(Math.random() * MOCK_FOODS.length)];
-    const healthScore = this.scoreForProfile(food, userProfile);
     return {
       id: Math.random().toString(36).slice(2, 11),
       ...food,
-      healthScore,
+      healthScore: this.scoreForProfile(food, userProfile),
     };
   }
 
+  // ── Real API ──────────────────────────────────────────────────────────────
+
   private async realAnalyze(imageBase64: string, userProfile: UserHealthProfile): Promise<FoodAnalysisResult> {
-    const apiKey = process.env.OPENAI_API_KEY ?? '';
     const prompt = this.buildPrompt(userProfile);
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch(this.endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${this.apiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
-        max_tokens: 1000,
+        model: this.model,
+        max_tokens: 1200,
+        temperature: 0.1,
         messages: [
+          {
+            role: 'system',
+            content: 'You are a professional clinical nutritionist. Always respond with valid JSON only — no prose, no markdown, just the raw JSON object.',
+          },
           {
             role: 'user',
             content: [
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:image/jpeg;base64,${imageBase64}`,
+                },
+              },
               { type: 'text', text: prompt },
-              { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}`, detail: 'low' } },
             ],
           },
         ],
       }),
     });
 
-    if (!response.ok) throw new Error(`OpenAI API error: ${response.status}`);
+    if (!response.ok) {
+      const body = await response.text().catch(() => '');
+      throw new Error(`SiliconFlow API ${response.status}: ${body}`);
+    }
 
     const data = await response.json();
-    const text: string = data.choices?.[0]?.message?.content ?? '{}';
+    const raw: string = data.choices?.[0]?.message?.content ?? '{}';
 
-    // Extract JSON block from GPT response
-    const jsonMatch = text.match(/```json\n?([\s\S]*?)\n?```/) ?? text.match(/(\{[\s\S]*\})/);
-    const parsed = JSON.parse(jsonMatch?.[1] ?? text);
-    return this.transformGPTResponse(parsed, userProfile);
+    // Strip markdown code fences if model returns them despite instructions
+    const jsonStr = raw
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/\s*```$/i, '')
+      .trim();
+
+    let parsed: any;
+    try {
+      parsed = JSON.parse(jsonStr);
+    } catch {
+      // Last resort: extract first {...} block
+      const m = raw.match(/\{[\s\S]*\}/);
+      if (!m) throw new Error('No JSON found in model response');
+      parsed = JSON.parse(m[0]);
+    }
+
+    return this.transform(parsed, userProfile);
   }
 
-  private buildPrompt(userProfile: UserHealthProfile): string {
-    const conditionLabels: Record<string, string> = {
-      hyperuricemia: '高尿酸血症（痛风）',
-      hypertension: '高血压',
-      diabetes: '糖尿病',
-      hyperlipidemia: '高血脂',
-      kidneyIssues: '肾脏问题',
-      obesity: '肥胖/体重管理',
-    };
-    const conditions = userProfile.conditions.map((c) => conditionLabels[c] ?? c).join('、');
+  // ── Prompt ────────────────────────────────────────────────────────────────
 
-    return `你是一位专业营养师。请分析图片中的食物，并根据用户的健康状况给出专业建议。
-用户患有：${conditions}
+  private buildPrompt(profile: UserHealthProfile): string {
+    const conditions =
+      profile.conditions.length > 0
+        ? profile.conditions.map((c) => CONDITION_LABELS[c] ?? c).join(', ')
+        : 'no specific chronic conditions';
 
-请以 JSON 格式回复（用 \`\`\`json 包裹），包含以下字段：
+    return `Analyze the food in the image. The user has: ${conditions}.
+
+Return ONLY a JSON object with exactly these fields (no extra text):
 {
-  "name": "食物名称（中文）",
-  "nameEn": "Food name (English)",
-  "calories": 卡路里(每100g, 数字),
-  "protein": 蛋白质g,
-  "fat": 脂肪g,
-  "carbs": 碳水g,
-  "sodium": 钠mg,
-  "potassium": 钾mg,
-  "phosphorus": 磷mg,
-  "purines": 嘌呤mg,
+  "name": "food name in English",
+  "nameEn": "food name in English",
+  "calories": <number per 100g>,
+  "protein": <grams per 100g>,
+  "fat": <grams per 100g>,
+  "carbs": <grams per 100g>,
+  "sodium": <mg per 100g>,
+  "potassium": <mg per 100g>,
+  "phosphorus": <mg per 100g>,
+  "purines": <mg per 100g>,
   "healthStatus": "green" | "yellow" | "red",
-  "healthScore": 1-10的数字,
-  "reason": "对用户健康状况的主要影响说明（1-2句话）",
+  "healthScore": <1–10 for this user's conditions>,
+  "reason": "1–2 sentence explanation of health impact for this user",
+  "cookingAdvice": "1–2 sentence cooking tip to make it healthier",
   "quantitySuggestion": "small" | "moderate" | "normal",
-  "servingOptions": [建议份量数组, 4个数字, 单位g],
-  "cookingTips": ["烹饪建议1", "烹饪建议2", "烹饪建议3"],
+  "servingOptions": [<4 gram values, e.g. 50,100,150,200>],
+  "cookingTips": ["tip 1", "tip 2", "tip 3"],
   "alternativeDetails": [
-    {"name": "替代食物", "status": "green", "desc": "替代原因"}
+    {"name": "...", "nameEn": "...", "status": "green"|"yellow"|"red", "desc": "why it is a better choice"}
   ]
 }`;
   }
 
-  private transformGPTResponse(parsed: any, userProfile: UserHealthProfile): FoodAnalysisResult {
+  // ── Transform API response → FoodAnalysisResult ───────────────────────────
+
+  private transform(p: any, profile: UserHealthProfile): FoodAnalysisResult {
+    const id = Math.random().toString(36).slice(2, 11);
     return {
-      id: Math.random().toString(36).slice(2, 11),
-      name: parsed.name ?? '未知食物',
-      nameEn: parsed.nameEn ?? '',
-      calories: Number(parsed.calories) || 0,
-      protein: Number(parsed.protein) || 0,
-      fat: Number(parsed.fat) || 0,
-      carbs: Number(parsed.carbs) || 0,
-      sodium: Number(parsed.sodium) || 0,
-      potassium: Number(parsed.potassium) || 0,
-      phosphorus: Number(parsed.phosphorus) || 0,
-      purines: Number(parsed.purines) || 0,
-      healthStatus: parsed.healthStatus ?? 'yellow',
-      healthScore: Number(parsed.healthScore) || 5,
-      reason: parsed.reason ?? '',
-      quantitySuggestion: parsed.quantitySuggestion ?? 'moderate',
-      servingOptions: parsed.servingOptions ?? [50, 100, 150, 200],
-      alternatives: (parsed.alternativeDetails ?? []).map((a: any) => a.name),
-      alternativeDetails: parsed.alternativeDetails ?? [],
-      cookingTips: parsed.cookingTips ?? [],
+      id,
+      name:              String(p.name ?? 'Unknown food'),
+      nameEn:            String(p.nameEn ?? p.name ?? ''),
+      calories:          Number(p.calories) || 0,
+      protein:           Number(p.protein)  || 0,
+      fat:               Number(p.fat)      || 0,
+      carbs:             Number(p.carbs)    || 0,
+      sodium:            Number(p.sodium)   || 0,
+      potassium:         Number(p.potassium)|| 0,
+      phosphorus:        Number(p.phosphorus)||0,
+      purines:           Number(p.purines)  || 0,
+      healthStatus:      (['green','yellow','red'].includes(p.healthStatus) ? p.healthStatus : 'yellow') as any,
+      healthScore:       Math.min(10, Math.max(1, Number(p.healthScore) || 5)),
+      reason:            String(p.reason ?? ''),
+      cookingAdvice:     String(p.cookingAdvice ?? ''),
+      quantitySuggestion:(['small','moderate','normal'].includes(p.quantitySuggestion) ? p.quantitySuggestion : 'moderate') as any,
+      servingOptions:    Array.isArray(p.servingOptions) ? p.servingOptions.map(Number) : [50,100,150,200],
+      cookingTips:       Array.isArray(p.cookingTips) ? p.cookingTips.map(String) : [],
+      alternatives:      Array.isArray(p.alternativeDetails) ? p.alternativeDetails.map((a:any) => a.name) : [],
+      alternativeDetails:Array.isArray(p.alternativeDetails) ? p.alternativeDetails.map((a:any) => ({
+        name:   String(a.name ?? ''),
+        nameEn: String(a.nameEn ?? a.name ?? ''),
+        status: (['green','yellow','red'].includes(a.status) ? a.status : 'green') as any,
+        desc:   String(a.desc ?? ''),
+      })) : [],
     };
   }
 
-  private scoreForProfile(food: MockFoodData, profile: UserHealthProfile): number {
+  // ── Score calculator (used by mock) ───────────────────────────────────────
+
+  private scoreForProfile(food: Pick<FoodItem,'purines'|'sodium'|'fat'|'potassium'|'phosphorus'|'carbs'|'calories'>, profile: UserHealthProfile): number {
     let score = 9;
-    for (const condition of profile.conditions) {
-      switch (condition) {
+    for (const c of profile.conditions) {
+      switch (c) {
         case 'hyperuricemia':
-          if (food.purines > 100) score -= 2.5;
-          else if (food.purines > 50) score -= 1;
+          if (food.purines > 150) score -= 3;
+          else if (food.purines > 75) score -= 1.5;
+          else if (food.purines > 40) score -= 0.5;
           break;
         case 'hypertension':
-          if (food.sodium > 600) score -= 2;
-          else if (food.sodium > 300) score -= 1;
+          if (food.sodium > 800) score -= 2.5;
+          else if (food.sodium > 400) score -= 1;
           break;
         case 'hyperlipidemia':
           if (food.fat > 25) score -= 2;
-          else if (food.fat > 12) score -= 0.5;
+          else if (food.fat > 12) score -= 0.8;
           break;
         case 'kidneyIssues':
-          if (food.potassium > 300) score -= 1;
-          if (food.phosphorus > 150) score -= 1;
+          if (food.potassium > 350) score -= 1;
+          if (food.phosphorus > 180) score -= 1;
           break;
         case 'diabetes':
-          if (food.carbs > 20) score -= 1.5;
+          if (food.carbs > 25) score -= 1.5;
+          else if (food.carbs > 15) score -= 0.5;
           break;
         case 'obesity':
-          if (food.calories > 300) score -= 1;
+          if (food.calories > 350) score -= 1.5;
+          else if (food.calories > 200) score -= 0.5;
           break;
       }
     }
