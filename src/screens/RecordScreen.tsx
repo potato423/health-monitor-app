@@ -1,99 +1,279 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
+import React, { useState, useRef } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  SafeAreaView,
+  ScrollView,
+  FlatList,
+  Dimensions,
+  Animated,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { i18n } from '../i18n';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { Colors, Spacing, Radius, Shadow } from '../constants/colors';
+import { RootStackParamList } from '../../App';
 
-const mockFoods = [
-  { id: '1', name: '红烧肉', nameEn: 'Braised Pork', healthStatus: 'red', time: '08:30', mealType: 'breakfast' },
-  { id: '2', name: '清炒西兰花', nameEn: 'Broccoli', healthStatus: 'green', time: '12:15', mealType: 'lunch' },
-  { id: '3', name: '宫保鸡丁', nameEn: 'Kung Pao Chicken', healthStatus: 'yellow', time: '18:45', mealType: 'dinner' },
+type Nav = StackNavigationProp<RootStackParamList>;
+
+const { width } = Dimensions.get('window');
+
+interface FoodEntry {
+  id: string;
+  name: string;
+  calories: number;
+  healthStatus: 'green' | 'yellow' | 'red';
+  weight?: string;
+}
+
+interface MealGroup {
+  id: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+  label: string;
+  icon: string;
+  timeRange: string;
+  foods: FoodEntry[];
+}
+
+const MOCK_MEALS: MealGroup[] = [
+  {
+    id: 'breakfast',
+    label: '早餐',
+    icon: 'sunny-outline',
+    timeRange: '06:00 – 09:00',
+    foods: [
+      { id: '1', name: '燕麦粥', calories: 180, healthStatus: 'green', weight: '200g' },
+      { id: '2', name: '水煮蛋', calories: 78, healthStatus: 'green', weight: '1个' },
+    ],
+  },
+  {
+    id: 'lunch',
+    label: '午餐',
+    icon: 'partly-sunny-outline',
+    timeRange: '11:30 – 13:30',
+    foods: [
+      { id: '3', name: '红烧肉', calories: 395, healthStatus: 'red', weight: '100g' },
+      { id: '4', name: '清炒西兰花', calories: 55, healthStatus: 'green', weight: '150g' },
+      { id: '5', name: '白米饭', calories: 232, healthStatus: 'yellow', weight: '150g' },
+    ],
+  },
+  {
+    id: 'dinner',
+    label: '晚餐',
+    icon: 'moon-outline',
+    timeRange: '17:30 – 20:00',
+    foods: [],
+  },
+  {
+    id: 'snack',
+    label: '加餐',
+    icon: 'cafe-outline',
+    timeRange: '随时',
+    foods: [
+      { id: '6', name: '苹果', calories: 72, healthStatus: 'green', weight: '1个' },
+    ],
+  },
 ];
 
-const mealNames = {
-  breakfast: { zh: '早餐', en: 'Breakfast' },
-  lunch: { zh: '午餐', en: 'Lunch' },
-  dinner: { zh: '晚餐', en: 'Dinner' },
-  snack: { zh: '加餐', en: 'Snack' },
-};
+function generateWeekDates() {
+  const dates: Date[] = [];
+  const today = new Date();
+  for (let i = -3; i <= 3; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    dates.push(d);
+  }
+  return dates;
+}
+
+const WEEK_DAYS = ['日', '一', '二', '三', '四', '五', '六'];
+
+function StatusBar({ status }: { status: 'green' | 'yellow' | 'red' }) {
+  const color =
+    status === 'green' ? Colors.green : status === 'yellow' ? Colors.orange : Colors.red;
+  return <View style={[styles.statusStripe, { backgroundColor: color }]} />;
+}
+
+function FoodRow({ food }: { food: FoodEntry }) {
+  const statusColor =
+    food.healthStatus === 'green'
+      ? Colors.green
+      : food.healthStatus === 'yellow'
+      ? Colors.orange
+      : Colors.red;
+  const statusLabel =
+    food.healthStatus === 'green' ? '可以吃' : food.healthStatus === 'yellow' ? '谨慎' : '避免';
+
+  return (
+    <View style={styles.foodRow}>
+      <StatusBar status={food.healthStatus} />
+      <View style={styles.foodRowContent}>
+        <View style={styles.foodRowLeft}>
+          <Text style={styles.foodName}>{food.name}</Text>
+          {food.weight && <Text style={styles.foodWeight}>{food.weight}</Text>}
+        </View>
+        <View style={styles.foodRowRight}>
+          <View style={[styles.statusPill, { backgroundColor: statusColor + '18' }]}>
+            <Text style={[styles.statusPillText, { color: statusColor }]}>{statusLabel}</Text>
+          </View>
+          <Text style={styles.foodCalories}>{food.calories} 卡</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function MealCard({ meal, onAdd }: { meal: MealGroup; onAdd: () => void }) {
+  const totalCalories = meal.foods.reduce((sum, f) => sum + f.calories, 0);
+  const hasRed = meal.foods.some((f) => f.healthStatus === 'red');
+  const hasYellow = meal.foods.some((f) => f.healthStatus === 'yellow');
+  const mealStatusColor = hasRed ? Colors.red : hasYellow ? Colors.orange : Colors.green;
+
+  return (
+    <View style={styles.mealCard}>
+      <View style={styles.mealHeader}>
+        <View style={styles.mealHeaderLeft}>
+          <View style={[styles.mealIconWrap, { backgroundColor: mealStatusColor + '15' }]}>
+            <Ionicons name={meal.icon as any} size={18} color={mealStatusColor} />
+          </View>
+          <View>
+            <Text style={styles.mealLabel}>{meal.label}</Text>
+            <Text style={styles.mealTimeRange}>{meal.timeRange}</Text>
+          </View>
+        </View>
+        <View style={styles.mealHeaderRight}>
+          {totalCalories > 0 && (
+            <Text style={styles.mealCalories}>{totalCalories} 卡</Text>
+          )}
+          <TouchableOpacity
+            style={styles.addMealButton}
+            onPress={onAdd}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="add" size={18} color={Colors.blue} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {meal.foods.length === 0 ? (
+        <TouchableOpacity style={styles.emptyMeal} onPress={onAdd} activeOpacity={0.6}>
+          <Ionicons name="add-circle-outline" size={22} color={Colors.textTertiary} />
+          <Text style={styles.emptyMealText}>点击添加食物</Text>
+        </TouchableOpacity>
+      ) : (
+        <View style={styles.foodList}>
+          {meal.foods.map((food, i) => (
+            <View key={food.id}>
+              <FoodRow food={food} />
+              {i < meal.foods.length - 1 && <View style={styles.foodDivider} />}
+            </View>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
 
 export default function RecordScreen() {
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'green': return '#34C759';
-      case 'yellow': return '#FF9500';
-      case 'red': return '#FF3B30';
-      default: return '#8E8E93';
-    }
+  const navigation = useNavigation<Nav>();
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const weekDates = generateWeekDates();
+
+  const totalCalories = MOCK_MEALS.reduce(
+    (sum, meal) => sum + meal.foods.reduce((s, f) => s + f.calories, 0),
+    0
+  );
+
+  const isToday = (date: Date) => {
+    const today = new Date();
+    return date.toDateString() === today.toDateString();
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'green': return '能吃 / Safe';
-      case 'yellow': return '谨慎吃 / Caution';
-      case 'red': return '避免吃 / Avoid';
-      default: return '未知 / Unknown';
-    }
-  };
-
-  const groupedByMeal = {
-    breakfast: mockFoods.filter(f => f.mealType === 'breakfast'),
-    lunch: mockFoods.filter(f => f.mealType === 'lunch'),
-    dinner: mockFoods.filter(f => f.mealType === 'dinner'),
-    snack: mockFoods.filter(f => f.mealType === 'snack'),
-  };
+  const isSelected = (date: Date) => date.toDateString() === selectedDate.toDateString();
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>{i18n.zh.record.title}</Text>
-        <Text style={styles.titleEn}>{i18n.en.record.title}</Text>
+        <Text style={styles.title}>饮食记录</Text>
+        <TouchableOpacity style={styles.calendarButton} activeOpacity={0.7}>
+          <Ionicons name="calendar-outline" size={22} color={Colors.blue} />
+        </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {Object.entries(groupedByMeal).map(([mealType, foods]) => (
-          <View key={mealType} style={styles.mealSection}>
-            <View style={styles.mealHeader}>
-              <View>
-                <Text style={styles.mealTitle}>{mealNames[mealType as keyof typeof mealNames].zh}</Text>
-                <Text style={styles.mealTitleEn}>{mealNames[mealType as keyof typeof mealNames].en}</Text>
-              </View>
-              <Text style={styles.mealTime}>
-                {foods.length > 0 ? foods[0].time : '--:--'}
-              </Text>
-            </View>
-
-            {foods.length === 0 ? (
-              <TouchableOpacity style={styles.emptyMeal}>
-                <Ionicons name="add-circle-outline" size={24} color="#C7C7CC" />
-                <View>
-                  <Text style={styles.emptyText}>点击添加食物</Text>
-                  <Text style={styles.emptyTextEn}>Tap to add food</Text>
-                </View>
+      {/* Date Selector */}
+      <View style={styles.dateSelectorWrap}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.dateScroll}
+        >
+          {weekDates.map((date, i) => {
+            const selected = isSelected(date);
+            const today = isToday(date);
+            return (
+              <TouchableOpacity
+                key={i}
+                style={[styles.dateItem, selected && styles.dateItemSelected]}
+                onPress={() => setSelectedDate(date)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.dateDayName, selected && styles.dateDayNameSelected]}>
+                  {today ? '今' : WEEK_DAYS[date.getDay()]}
+                </Text>
+                <Text style={[styles.dateNum, selected && styles.dateNumSelected]}>
+                  {date.getDate()}
+                </Text>
+                {today && !selected && <View style={styles.todayDot} />}
               </TouchableOpacity>
-            ) : (
-              foods.map((food) => (
-                <TouchableOpacity key={food.id} style={styles.foodItem}>
-                  <View style={styles.foodInfo}>
-                    <View style={[styles.statusDot, { backgroundColor: getStatusColor(food.healthStatus) }]} />
-                    <View>
-                      <Text style={styles.foodName}>{food.name}</Text>
-                      <Text style={styles.foodNameEn}>{food.nameEn}</Text>
-                    </View>
-                  </View>
-                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(food.healthStatus) + '20' }]}>
-                    <Text style={[styles.statusBadgeText, { color: getStatusColor(food.healthStatus) }]}>
-                      {getStatusText(food.healthStatus)}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              ))
-            )}
-          </View>
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      {/* Summary Strip */}
+      <View style={styles.summaryStrip}>
+        <View style={styles.summaryItem}>
+          <Text style={styles.summaryValue}>{totalCalories}</Text>
+          <Text style={styles.summaryKey}>总卡路里</Text>
+        </View>
+        <View style={styles.summaryDivider} />
+        <View style={styles.summaryItem}>
+          <Text style={styles.summaryValue}>
+            {MOCK_MEALS.reduce((s, m) => s + m.foods.length, 0)}
+          </Text>
+          <Text style={styles.summaryKey}>食物种类</Text>
+        </View>
+        <View style={styles.summaryDivider} />
+        <View style={styles.summaryItem}>
+          <Text style={[styles.summaryValue, { color: Colors.green }]}>7.5</Text>
+          <Text style={styles.summaryKey}>今日评分</Text>
+        </View>
+      </View>
+
+      {/* Meal Groups */}
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
+      >
+        {MOCK_MEALS.map((meal) => (
+          <MealCard
+            key={meal.id}
+            meal={meal}
+            onAdd={() => navigation.navigate('FoodResult', {})}
+          />
         ))}
       </ScrollView>
 
-      <TouchableOpacity style={styles.addButton}>
-        <Ionicons name="add" size={28} color="#FFFFFF" />
+      {/* FAB */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => navigation.navigate('FoodResult', {})}
+        activeOpacity={0.85}
+      >
+        <Ionicons name="camera" size={26} color="#FFFFFF" />
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -102,123 +282,241 @@ export default function RecordScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F7',
+    backgroundColor: Colors.background,
   },
   header: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.sm,
   },
   title: {
     fontSize: 34,
-    fontWeight: 'bold',
-    color: '#000000',
+    fontWeight: '700',
+    color: Colors.text,
   },
-  titleEn: {
-    fontSize: 15,
-    color: '#8E8E93',
+  calendarButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.secondaryBackground,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadow.card,
+  },
+  dateSelectorWrap: {
+    marginTop: Spacing.sm,
+  },
+  dateScroll: {
+    paddingHorizontal: Spacing.xl,
+    gap: Spacing.sm,
+  },
+  dateItem: {
+    width: 44,
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+    borderRadius: Radius.md,
+  },
+  dateItemSelected: {
+    backgroundColor: Colors.blue,
+  },
+  dateDayName: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+  },
+  dateDayNameSelected: {
+    color: 'rgba(255,255,255,0.8)',
+  },
+  dateNum: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.text,
     marginTop: 2,
+  },
+  dateNumSelected: {
+    color: '#FFFFFF',
+  },
+  todayDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: Colors.blue,
+    marginTop: 3,
+  },
+  summaryStrip: {
+    flexDirection: 'row',
+    backgroundColor: Colors.secondaryBackground,
+    marginHorizontal: Spacing.xl,
+    marginTop: Spacing.lg,
+    borderRadius: Radius.lg,
+    paddingVertical: Spacing.md,
+    ...Shadow.card,
+  },
+  summaryItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  summaryValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.text,
+  },
+  summaryKey: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  summaryDivider: {
+    width: 0.5,
+    backgroundColor: Colors.separator,
+    marginVertical: 4,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: Spacing.xl,
+    marginTop: Spacing.lg,
   },
-  mealSection: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+  mealCard: {
+    backgroundColor: Colors.secondaryBackground,
+    borderRadius: Radius.xl,
+    marginBottom: Spacing.md,
+    overflow: 'hidden',
+    ...Shadow.card,
   },
   mealHeader: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 0.5,
+    borderBottomColor: Colors.separator,
   },
-  mealTitle: {
-    fontSize: 18,
+  mealHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  mealIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mealLabel: {
+    fontSize: 16,
     fontWeight: '600',
-    color: '#000000',
+    color: Colors.text,
   },
-  mealTitleEn: {
-    fontSize: 13,
-    color: '#8E8E93',
-    marginTop: 2,
+  mealTimeRange: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: 1,
   },
-  mealTime: {
-    fontSize: 15,
-    color: '#8E8E93',
+  mealHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  mealCalories: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+  },
+  addMealButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: Colors.blue + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyMeal: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    borderStyle: 'dashed',
+    paddingVertical: Spacing.xl,
+    gap: Spacing.sm,
   },
-  emptyText: {
-    fontSize: 15,
-    color: '#8E8E93',
-    marginLeft: 8,
+  emptyMealText: {
+    fontSize: 14,
+    color: Colors.textTertiary,
   },
-  emptyTextEn: {
-    fontSize: 12,
-    color: '#C7C7CC',
-    marginLeft: 8,
+  foodList: {
+    paddingHorizontal: 0,
   },
-  foodItem: {
+  foodRow: {
     flexDirection: 'row',
+    alignItems: 'stretch',
+  },
+  statusStripe: {
+    width: 3,
+    borderRadius: 2,
+    marginVertical: 2,
+    marginLeft: 0,
+  },
+  foodRowContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F2F2F7',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
   },
-  foodInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  foodRowLeft: {
     flex: 1,
   },
-  statusDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 12,
-  },
   foodName: {
-    fontSize: 17,
-    color: '#000000',
+    fontSize: 15,
+    fontWeight: '500',
+    color: Colors.text,
   },
-  foodNameEn: {
-    fontSize: 13,
-    color: '#8E8E93',
+  foodWeight: {
+    fontSize: 12,
+    color: Colors.textSecondary,
     marginTop: 2,
   },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+  foodRowRight: {
+    alignItems: 'flex-end',
+    gap: Spacing.xs,
   },
-  statusBadgeText: {
-    fontSize: 12,
+  statusPill: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: Radius.pill,
+  },
+  statusPillText: {
+    fontSize: 11,
     fontWeight: '600',
   },
-  addButton: {
+  foodCalories: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+  },
+  foodDivider: {
+    height: 0.5,
+    backgroundColor: Colors.separator,
+    marginLeft: Spacing.lg + 3,
+  },
+  fab: {
     position: 'absolute',
-    right: 20,
+    right: Spacing.xl,
     bottom: 30,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#007AFF',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: Colors.blue,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#007AFF',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowColor: Colors.blue,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 14,
+    elevation: 8,
   },
 });

@@ -1,97 +1,72 @@
-import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { storageService } from './storage';
 
-interface Subscription {
+export interface SubscriptionProduct {
   productId: string;
   price: string;
+  pricePerMonth: string;
   period: 'monthly' | 'yearly';
-  isActive: boolean;
+  savings?: string;
 }
 
+export interface PurchaseResult {
+  success: boolean;
+  error?: string;
+}
+
+const PRODUCTS: SubscriptionProduct[] = [
+  {
+    productId: 'com.healthmonitor.monthly',
+    price: '$14.99',
+    pricePerMonth: '$14.99 / 月',
+    period: 'monthly',
+  },
+  {
+    productId: 'com.healthmonitor.yearly',
+    price: '$89.99',
+    pricePerMonth: '$7.50 / 月',
+    period: 'yearly',
+    savings: '省 50%',
+  },
+];
+
 class PaymentService {
-  private readonly PRODUCTS = {
-    monthly: 'health_monitor_monthly',
-    yearly: 'health_monitor_yearly',
-  };
+  getProducts(): SubscriptionProduct[] {
+    return PRODUCTS;
+  }
 
-  private readonly PRICES = {
-    monthly: '$15',
-    yearly: '$108',
-  };
-
-  async checkTrialStatus(): Promise<{ isTrial: boolean; trialEndDate: Date | null }> {
-    // 实际实现需要检查用户订阅状态
-    // 这里简化处理
-    const installDate = await this.getInstallDate();
+  async getTrialStatus(): Promise<{ isTrial: boolean; daysLeft: number }> {
+    const installDate = await storageService.getInstallDate();
     const now = new Date();
-    const trialEndDate = new Date(installDate.getTime() + 24 * 60 * 60 * 1000);
-    
-    return {
-      isTrial: now < trialEndDate,
-      trialEndDate: now < trialEndDate ? trialEndDate : null,
-    };
+    const trialDays = 3;
+    const msPerDay = 86_400_000;
+    const elapsed = Math.floor((now.getTime() - installDate.getTime()) / msPerDay);
+    const daysLeft = Math.max(0, trialDays - elapsed);
+    return { isTrial: daysLeft > 0, daysLeft };
   }
 
-  private async getInstallDate(): Promise<Date> {
-    // 实际实现需要从存储中读取安装日期
-    // 这里简化处理，返回当前时间
-    return new Date();
+  async purchase(productId: string): Promise<PurchaseResult> {
+    // In production, integrate expo-in-app-purchases or react-native-purchases (RevenueCat).
+    // This implementation simulates the purchase flow for demo/development builds.
+    return new Promise((resolve) => {
+      setTimeout(async () => {
+        await storageService.setSubscriptionStatus('pro');
+        resolve({ success: true });
+      }, 1500);
+    });
   }
 
-  async purchase(productId: string): Promise<boolean> {
-    try {
-      if (Platform.OS === 'ios') {
-        // iOS App Store购买流程
-        return await this.purchaseIOS(productId);
-      } else {
-        // Android Google Play购买流程
-        return await this.purchaseAndroid(productId);
-      }
-    } catch (error) {
-      console.error('Purchase failed:', error);
-      return false;
-    }
+  async restorePurchases(): Promise<PurchaseResult> {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({ success: false, error: '未找到购买记录' });
+      }, 1000);
+    });
   }
 
-  private async purchaseIOS(productId: string): Promise<boolean> {
-    // 实际实现需要集成StoreKit
-    // 这里简化处理
-    console.log('iOS purchase:', productId);
-    return true;
-  }
-
-  private async purchaseAndroid(productId: string): Promise<boolean> {
-    // 实际实现需要集成Google Play Billing
-    // 这里简化处理
-    console.log('Android purchase:', productId);
-    return true;
-  }
-
-  async restorePurchases(): Promise<boolean> {
-    try {
-      // 实际实现需要恢复购买
-      console.log('Restoring purchases');
-      return true;
-    } catch (error) {
-      console.error('Restore failed:', error);
-      return false;
-    }
-  }
-
-  getProducts(): Subscription[] {
-    return [
-      {
-        productId: this.PRODUCTS.monthly,
-        price: this.PRICES.monthly,
-        period: 'monthly',
-        isActive: false,
-      },
-      {
-        productId: this.PRODUCTS.yearly,
-        price: this.PRICES.yearly,
-        period: 'yearly',
-        isActive: false,
-      },
-    ];
+  async isSubscribed(): Promise<boolean> {
+    const status = await storageService.getSubscriptionStatus();
+    return status === 'pro';
   }
 }
 
