@@ -255,10 +255,10 @@ export default function ProfileScreen() {
         <SectionLabel title="LEGAL" />
         <View style={styles.card}>
           <SettingRow icon="document-text-outline" iconColor={Colors.indigo} label="Privacy Policy"
-            onPress={() => Linking.openURL('https://example.com/privacy')} />
+            onPress={() => Linking.openURL('https://potato423.github.io/health-monitor-app/privacy-policy.html')} />
           <Divider />
           <SettingRow icon="shield-outline" iconColor={Colors.green} label="Terms of Service"
-            onPress={() => Linking.openURL('https://example.com/terms')} />
+            onPress={() => Linking.openURL('https://potato423.github.io/health-monitor-app/privacy-policy.html')} />
           <Divider />
           <SettingRow icon="information-circle-outline" iconColor={Colors.textSecondary}
             label="Version" value="1.1.0" />
