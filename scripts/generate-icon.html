@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>ChronicCare Icon Generator</title>
+<style>
+  body { background: #1a1a2e; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; font-family: -apple-system, sans-serif; gap: 24px; }
+  h2 { color: #fff; font-size: 18px; font-weight: 600; }
+  canvas { border-radius: 22.37%; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+  button { background: #3B82F6; color: #fff; border: none; padding: 12px 28px; border-radius: 999px; font-size: 16px; font-weight: 600; cursor: pointer; }
+  button:hover { background: #2563EB; }
+  .variants { display: flex; gap: 32px; align-items: center; }
+  .variant { display: flex; flex-direction: column; align-items: center; gap: 12px; color: #94A3B8; font-size: 13px; }
+</style>
+</head>
+<body>
+<h2>ChronicCare — App Icons (right-click → Save image as)</h2>
+<div class="variants">
+
+  <!-- Variant A: Blue gradient + heart + leaf -->
+  <div class="variant">
+    <canvas id="iconA" width="1024" height="1024" style="width:200px;height:200px"></canvas>
+    <span>Option A · Blue Gradient</span>
+  </div>
+
+  <!-- Variant B: Dark navy + scan ring + heart -->
+  <div class="variant">
+    <canvas id="iconB" width="1024" height="1024" style="width:200px;height:200px"></canvas>
+    <span>Option B · Dark Premium</span>
+  </div>
+
+  <!-- Variant C: Teal gradient + fork + leaf -->
+  <div class="variant">
+    <canvas id="iconC" width="1024" height="1024" style="width:200px;height:200px"></canvas>
+    <span>Option C · Emerald Health</span>
+  </div>
+
+</div>
+<button onclick="downloadAll()">Download All 1024×1024 PNGs</button>
+
+<script>
+// ─── Utility ───────────────────────────────────────────────────────────────────
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+// ─── Variant A: Royal blue + heart + leaf ─────────────────────────────────────
+(function drawA() {
+  const c = document.getElementById('iconA');
+  const ctx = c.getContext('2d');
+  const S = 1024;
+
+  // Background gradient
+  const grad = ctx.createLinearGradient(0, 0, S * 0.6, S);
+  grad.addColorStop(0, '#5B9CF6');
+  grad.addColorStop(0.5, '#3B82F6');
+  grad.addColorStop(1, '#1D4ED8');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, S, S);
+
+  // Subtle inner glow
+  const glow = ctx.createRadialGradient(S*0.35, S*0.3, 0, S*0.5, S*0.5, S*0.6);
+  glow.addColorStop(0, 'rgba(255,255,255,0.12)');
+  glow.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, S, S);
+
+  // Heart shape
+  ctx.save();
+  ctx.translate(S * 0.5, S * 0.5);
+  
+  const heartSize = 300;
+  ctx.beginPath();
+  // Heart using bezier curves, centered at origin
+  ctx.moveTo(0, heartSize * 0.25);
+  ctx.bezierCurveTo(
+    0, heartSize * 0.05,
+    -heartSize * 0.5, -heartSize * 0.3,
+    -heartSize * 0.5, -heartSize * 0.05
+  );
+  ctx.bezierCurveTo(
+    -heartSize * 0.5, heartSize * 0.22,
+    0, heartSize * 0.55,
+    0, heartSize * 0.25
+  );
+  ctx.bezierCurveTo(
+    0, heartSize * 0.55,
+    heartSize * 0.5, heartSize * 0.22,
+    heartSize * 0.5, -heartSize * 0.05
+  );
+  ctx.bezierCurveTo(
+    heartSize * 0.5, -heartSize * 0.3,
+    0, heartSize * 0.05,
+    0, heartSize * 0.25
+  );
+  ctx.fillStyle = 'rgba(255,255,255,0.95)';
+  ctx.fill();
+
+  // Leaf on top-right of heart
+  ctx.save();
+  ctx.translate(heartSize * 0.28, -heartSize * 0.18);
+  ctx.rotate(-0.5);
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 52, 28, 0.8, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.95)';
+  ctx.fill();
+  // Leaf vein
+  ctx.beginPath();
+  ctx.moveTo(-40, 8);
+  ctx.lineTo(40, -8);
+  ctx.strokeStyle = 'rgba(59,130,246,0.5)';
+  ctx.lineWidth = 4;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.restore();
+})();
+
+// ─── Variant B: Dark navy + camera ring + heart ────────────────────────────────
+(function drawB() {
+  const c = document.getElementById('iconB');
+  const ctx = c.getContext('2d');
+  const S = 1024;
+
+  // Dark gradient
+  const grad = ctx.createLinearGradient(0, 0, S, S);
+  grad.addColorStop(0, '#0F172A');
+  grad.addColorStop(0.6, '#1E3A5F');
+  grad.addColorStop(1, '#0F172A');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, S, S);
+
+  // Subtle blue glow center
+  const glow = ctx.createRadialGradient(S*0.5, S*0.45, 0, S*0.5, S*0.5, S*0.42);
+  glow.addColorStop(0, 'rgba(59,130,246,0.18)');
+  glow.addColorStop(1, 'rgba(59,130,246,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, S, S);
+
+  const cx = S / 2, cy = S / 2;
+
+  // Outer ring
+  ctx.beginPath();
+  ctx.arc(cx, cy, 300, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  // Inner ring
+  ctx.beginPath();
+  ctx.arc(cx, cy, 260, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Corner brackets (camera viewfinder aesthetic)
+  const br = 240, bLen = 70, bW = 8;
+  ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+  ctx.lineWidth = bW;
+  ctx.lineCap = 'round';
+  const corners = [
+    [cx-br, cy-br, 1, 1],
+    [cx+br, cy-br, -1, 1],
+    [cx-br, cy+br, 1, -1],
+    [cx+br, cy+br, -1, -1],
+  ];
+  corners.forEach(([x, y, dx, dy]) => {
+    ctx.beginPath(); ctx.moveTo(x, y + dy*bLen); ctx.lineTo(x, y); ctx.lineTo(x + dx*bLen, y); ctx.stroke();
+  });
+
+  // Heart in center
+  ctx.save();
+  ctx.translate(cx, cy - 20);
+  const hs = 200;
+  ctx.beginPath();
+  ctx.moveTo(0, hs*0.25);
+  ctx.bezierCurveTo(0, hs*0.05, -hs*0.5, -hs*0.3, -hs*0.5, -hs*0.05);
+  ctx.bezierCurveTo(-hs*0.5, hs*0.22, 0, hs*0.55, 0, hs*0.25);
+  ctx.bezierCurveTo(0, hs*0.55, hs*0.5, hs*0.22, hs*0.5, -hs*0.05);
+  ctx.bezierCurveTo(hs*0.5, -hs*0.3, 0, hs*0.05, 0, hs*0.25);
+  
+  // Blue fill for heart on dark bg
+  const hGrad = ctx.createLinearGradient(0, -hs*0.3, 0, hs*0.6);
+  hGrad.addColorStop(0, '#60A5FA');
+  hGrad.addColorStop(1, '#3B82F6');
+  ctx.fillStyle = hGrad;
+  ctx.fill();
+  ctx.restore();
+
+  // Pulse line
+  ctx.save();
+  ctx.translate(cx, cy + 160);
+  ctx.beginPath();
+  const pts = [-200,-20,-140,0,-100,0,-80,0,-60,-50,-40,50,-20,-70,0,70,20,-30,60,0,100,0,140,0,200,0];
+  ctx.moveTo(pts[0], pts[1]);
+  for (let i=2; i<pts.length; i+=2) ctx.lineTo(pts[i], pts[i+1]);
+  ctx.strokeStyle = 'rgba(96,165,250,0.7)';
+  ctx.lineWidth = 5;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+  ctx.restore();
+})();
+
+// ─── Variant C: Emerald + fork/leaf ───────────────────────────────────────────
+(function drawC() {
+  const c = document.getElementById('iconC');
+  const ctx = c.getContext('2d');
+  const S = 1024;
+
+  // Emerald gradient
+  const grad = ctx.createLinearGradient(0, 0, S * 0.5, S);
+  grad.addColorStop(0, '#34D399');
+  grad.addColorStop(0.5, '#10B981');
+  grad.addColorStop(1, '#059669');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, S, S);
+
+  // Glow
+  const glow = ctx.createRadialGradient(S*0.4, S*0.35, 0, S*0.5, S*0.5, S*0.55);
+  glow.addColorStop(0, 'rgba(255,255,255,0.15)');
+  glow.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, S, S);
+
+  const cx = S/2, cy = S/2 - 20;
+
+  // Large white leaf / shield shape
+  ctx.save();
+  ctx.translate(cx, cy);
+  
+  // Main leaf
+  ctx.beginPath();
+  ctx.moveTo(0, -280);
+  ctx.bezierCurveTo(180, -280, 280, -80, 260, 120);
+  ctx.bezierCurveTo(240, 280, 80, 320, 0, 340);
+  ctx.bezierCurveTo(-80, 320, -240, 280, -260, 120);
+  ctx.bezierCurveTo(-280, -80, -180, -280, 0, -280);
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  ctx.fill();
+
+  // Inner heart cutout in green
+  ctx.beginPath();
+  const hs = 170;
+  ctx.moveTo(0, hs*0.25 - 30);
+  ctx.bezierCurveTo(0, hs*0.05-30, -hs*0.5, -hs*0.3-30, -hs*0.5, -hs*0.05-30);
+  ctx.bezierCurveTo(-hs*0.5, hs*0.22-30, 0, hs*0.55-30, 0, hs*0.25-30);
+  ctx.bezierCurveTo(0, hs*0.55-30, hs*0.5, hs*0.22-30, hs*0.5, -hs*0.05-30);
+  ctx.bezierCurveTo(hs*0.5, -hs*0.3-30, 0, hs*0.05-30, 0, hs*0.25-30);
+  ctx.fillStyle = '#10B981';
+  ctx.fill();
+
+  ctx.restore();
+})();
+
+// ─── Download ─────────────────────────────────────────────────────────────────
+function downloadAll() {
+  ['A','B','C'].forEach(v => {
+    const c = document.getElementById('icon'+v);
+    const link = document.createElement('a');
+    link.download = `chroniccare-icon-${v.toLowerCase()}-1024.png`;
+    link.href = c.toDataURL('image/png');
+    link.click();
+  });
+}
+</script>
+</body>
+</html>
