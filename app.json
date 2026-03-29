@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "慢病饮食助手",
+    "name": "ChronicCare",
     "slug": "health-monitor-app",
     "version": "1.1.0",
     "runtimeVersion": "1.1.0",
@@ -11,17 +11,17 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#F2F2F7"
+      "backgroundColor": "#4A90EE"
     },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.healthmonitor.chroniccare",
-      "buildNumber": "3",
+      "buildNumber": "4",
       "infoPlist": {
-        "NSCameraUsageDescription": "拍摄食物照片，AI 分析食物对您慢性病的健康影响",
-        "NSPhotoLibraryUsageDescription": "从相册选择食物照片进行健康分析",
-        "NSPhotoLibraryAddUsageDescription": "保存食物分析报告到相册",
-        "NSUserNotificationsUsageDescription": "发送三餐记录提醒和饮水提醒"
+        "NSCameraUsageDescription": "Take photos of your food so our AI can analyze its health impact for your conditions.",
+        "NSPhotoLibraryUsageDescription": "Choose a food photo from your library for AI health analysis.",
+        "NSPhotoLibraryAddUsageDescription": "Save your food analysis reports to your photo library.",
+        "NSUserNotificationsUsageDescription": "Receive meal logging reminders and hydration alerts to stay on track."
       },
       "config": {
         "usesNonExemptEncryption": false
@@ -29,11 +29,11 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#F2F2F7",
+        "backgroundColor": "#4A90EE",
         "foregroundImage": "./assets/android-icon-foreground.png"
       },
       "package": "com.healthmonitor.chroniccare",
-      "versionCode": 3,
+      "versionCode": 4,
       "permissions": [
         "CAMERA",
         "READ_MEDIA_IMAGES",
@@ -48,11 +48,12 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "从相册选择食物照片进行健康分析",
-          "cameraPermission": "拍摄食物照片，AI 分析食物对您慢性病的健康影响"
+          "photosPermission": "Choose a food photo from your library for AI health analysis.",
+          "cameraPermission": "Take photos of your food so our AI can analyze its health impact."
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      "expo-notifications"
     ],
     "extra": {
       "eas": {
