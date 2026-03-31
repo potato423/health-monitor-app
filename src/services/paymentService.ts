@@ -16,17 +16,17 @@ export interface PurchaseResult {
 
 const PRODUCTS: SubscriptionProduct[] = [
   {
-    productId: 'com.healthmonitor.monthly',
+    productId: 'com.healthmonitor.chroniccare.monthly',
     price: '$14.99',
-    pricePerMonth: '$14.99 / 月',
+    pricePerMonth: '$14.99 / mo',
     period: 'monthly',
   },
   {
-    productId: 'com.healthmonitor.yearly',
+    productId: 'com.healthmonitor.chroniccare.yearly',
     price: '$89.99',
-    pricePerMonth: '$7.50 / 月',
+    pricePerMonth: '$7.50 / mo',
     period: 'yearly',
-    savings: '省 50%',
+    savings: 'Save 50%',
   },
 ];
 
@@ -59,7 +59,7 @@ class PaymentService {
   async restorePurchases(): Promise<PurchaseResult> {
     return new Promise((resolve) => {
       setTimeout(() => {
-        resolve({ success: false, error: '未找到购买记录' });
+        resolve({ success: false, error: 'No previous purchase found for this Apple ID.' });
       }, 1000);
     });
   }

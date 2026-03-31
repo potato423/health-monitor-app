@@ -258,7 +258,7 @@ export default function ProfileScreen() {
             onPress={() => Linking.openURL('https://potato423.github.io/health-monitor-app/privacy-policy.html')} />
           <Divider />
           <SettingRow icon="shield-outline" iconColor={Colors.green} label="Terms of Service"
-            onPress={() => Linking.openURL('https://potato423.github.io/health-monitor-app/privacy-policy.html')} />
+            onPress={() => Linking.openURL('https://potato423.github.io/health-monitor-app/terms.html')} />
           <Divider />
           <SettingRow icon="information-circle-outline" iconColor={Colors.textSecondary}
             label="Version" value="1.1.0" />

@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
   SafeAreaView, ScrollView, ActivityIndicator,
+  Modal, TextInput, KeyboardAvoidingView, Platform, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -11,6 +12,10 @@ import { Colors, Spacing, Radius, Shadow, Type } from '../constants/colors';
 import { RootStackParamList } from '../../App';
 import { databaseService } from '../services/database';
 import { MealRecord, FoodItem } from '../types';
+import {
+  exerciseService, ExerciseRecord, ExerciseType,
+  EXERCISE_META, estimateCalories,
+} from '../services/exerciseService';
 
 type Nav = StackNavigationProp<RootStackParamList>;
 type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
@@ -151,6 +156,36 @@ export default function RecordScreen() {
     navigation.navigate('FoodResult', { analysisResult: undefined });
   };
 
+  const [exercises, setExercises]   = useState<ExerciseRecord[]>([]);
+  const [showExModal, setShowExModal] = useState(false);
+  const [exType, setExType]           = useState<ExerciseType>('walking');
+  const [exDuration, setExDuration]   = useState('30');
+
+  const loadExercises = useCallback(async (d: Date) => {
+    const ex = await exerciseService.getRecords(d).catch(() => []);
+    setExercises(ex);
+  }, []);
+
+  useFocusEffect(useCallback(() => {
+    load(date);
+    loadExercises(date);
+  }, [date, load, loadExercises]));
+
+  const handleAddExercise = async () => {
+    const mins = parseInt(exDuration, 10);
+    if (isNaN(mins) || mins < 1) { Alert.alert('Invalid duration'); return; }
+    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    await exerciseService.addRecord({
+      date: date.toISOString().split('T')[0],
+      type: exType,
+      durationMinutes: mins,
+      caloriesBurned: estimateCalories(exType, mins),
+    });
+    setShowExModal(false);
+    setExDuration('30');
+    loadExercises(date);
+  };
+
   const byType = Object.fromEntries(records.map(r => [r.mealType, r])) as Record<string, MealRecord>;
   const totalCal   = records.reduce((s, r) => s + r.totalCalories, 0);
   const totalFoods = records.reduce((s, r) => s + r.foods.length, 0);
@@ -158,6 +193,7 @@ export default function RecordScreen() {
   const avgScore   = allFoods.length
     ? Number((allFoods.reduce((s, f) => s + (f.healthScore ?? 5), 0) / allFoods.length).toFixed(1))
     : null;
+  const totalBurned = exercises.reduce((s, e) => s + e.caloriesBurned, 0);
 
   const isToday    = (d: Date) => d.toDateString() === new Date().toDateString();
   const isSelected = (d: Date) => d.toDateString() === date.toDateString();
@@ -166,7 +202,7 @@ export default function RecordScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Food Log</Text>
+        <Text style={styles.title}>Daily Log</Text>
         <TouchableOpacity style={styles.calBtn} activeOpacity={0.7}>
           <Ionicons name="calendar-outline" size={22} color={Colors.primary} />
         </TouchableOpacity>
@@ -227,6 +263,59 @@ export default function RecordScreen() {
           {(Object.keys(MEAL_META) as MealType[]).map(type => (
             <MealCard key={type} mealType={type} record={byType[type] ?? null} onAdd={onAdd} />
           ))}
+
+          {/* Exercise Section */}
+          <View style={styles.exSection}>
+            <View style={styles.exSectionHeader}>
+              <Text style={styles.exSectionTitle}>Exercise</Text>
+              <TouchableOpacity style={styles.exAddBtn}
+                onPress={async () => { await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowExModal(true); }}
+                activeOpacity={0.75}>
+                <Ionicons name="add" size={18} color={Colors.primary} />
+                <Text style={styles.exAddBtnText}>Add</Text>
+              </TouchableOpacity>
+            </View>
+
+            {exercises.length === 0 ? (
+              <TouchableOpacity style={styles.exEmpty}
+                onPress={() => setShowExModal(true)} activeOpacity={0.6}>
+                <Ionicons name="walk-outline" size={22} color={Colors.textTertiary} />
+                <Text style={styles.exEmptyText}>Log your workout</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.exList}>
+                {exercises.map((ex, i) => (
+                  <View key={ex.id}>
+                    <View style={styles.exRow}>
+                      <View style={[styles.exIconWrap, { backgroundColor: Colors.green + '18' }]}>
+                        <Ionicons name={EXERCISE_META[ex.type].icon as any} size={18} color={Colors.green} />
+                      </View>
+                      <View style={styles.exInfo}>
+                        <Text style={styles.exName}>{EXERCISE_META[ex.type].label}</Text>
+                        <Text style={styles.exMeta}>{ex.durationMinutes} min</Text>
+                      </View>
+                      <View style={styles.exRight}>
+                        <Text style={styles.exCal}>-{ex.caloriesBurned} kcal</Text>
+                        <TouchableOpacity onPress={async () => {
+                          await exerciseService.deleteRecord(date, ex.id);
+                          loadExercises(date);
+                        }} activeOpacity={0.7}>
+                          <Ionicons name="trash-outline" size={16} color={Colors.textTertiary} />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                    {i < exercises.length - 1 && <View style={styles.exDivider} />}
+                  </View>
+                ))}
+                {totalBurned > 0 && (
+                  <View style={styles.exTotalRow}>
+                    <Text style={styles.exTotalLabel}>Total burned</Text>
+                    <Text style={styles.exTotalVal}>-{totalBurned} kcal</Text>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
         </ScrollView>
       )}
 
@@ -234,6 +323,68 @@ export default function RecordScreen() {
       <TouchableOpacity style={styles.fab} onPress={onAdd} activeOpacity={0.85}>
         <Ionicons name="camera" size={26} color="#fff" />
       </TouchableOpacity>
+
+      {/* Exercise Log Modal */}
+      <Modal visible={showExModal} transparent animationType="slide" onRequestClose={() => setShowExModal(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>Log Exercise</Text>
+
+            {/* Type selector */}
+            <Text style={styles.modalLabel}>Type</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.exTypeRow}>
+              {(Object.keys(EXERCISE_META) as ExerciseType[]).map(t => (
+                <TouchableOpacity
+                  key={t}
+                  style={[styles.exTypeChip, exType === t && styles.exTypeChipOn]}
+                  onPress={async () => { await Haptics.selectionAsync(); setExType(t); }}
+                  activeOpacity={0.75}
+                >
+                  <Ionicons name={EXERCISE_META[t].icon as any} size={16}
+                    color={exType === t ? '#fff' : Colors.textSecondary} />
+                  <Text style={[styles.exTypeLabel, exType === t && { color: '#fff' }]}>
+                    {EXERCISE_META[t].label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            {/* Duration */}
+            <Text style={styles.modalLabel}>Duration (minutes)</Text>
+            <View style={styles.durationRow}>
+              {['15','30','45','60'].map(d => (
+                <TouchableOpacity key={d}
+                  style={[styles.durationChip, exDuration === d && styles.durationChipOn]}
+                  onPress={() => setExDuration(d)} activeOpacity={0.75}>
+                  <Text style={[styles.durationLabel, exDuration === d && { color: '#fff' }]}>{d}</Text>
+                </TouchableOpacity>
+              ))}
+              <TextInput
+                style={styles.durationInput}
+                value={exDuration}
+                onChangeText={setExDuration}
+                keyboardType="number-pad"
+                placeholder="custom"
+                placeholderTextColor={Colors.textTertiary}
+              />
+            </View>
+
+            <Text style={styles.estimateText}>
+              Est. {estimateCalories(exType, parseInt(exDuration) || 0)} kcal burned
+            </Text>
+
+            <View style={styles.modalBtns}>
+              <TouchableOpacity style={styles.modalCancel} onPress={() => setShowExModal(false)} activeOpacity={0.7}>
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalSave} onPress={handleAddExercise} activeOpacity={0.85}>
+                <Text style={styles.modalSaveText}>Log It</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -286,4 +437,45 @@ const styles = StyleSheet.create({
   emptyDayBtn: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, backgroundColor: Colors.primary, borderRadius: Radius.pill, paddingHorizontal: Spacing.xxl, paddingVertical: 14, marginTop: Spacing.xl, ...Shadow.button },
   emptyDayBtnText: { ...Type.headline, color: '#fff' },
   fab: { position: 'absolute', right: Spacing.xl, bottom: 30, width: 62, height: 62, borderRadius: 31, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center', shadowColor: Colors.primary, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.35, shadowRadius: 16, elevation: 8 },
+  // Exercise section
+  exSection: { backgroundColor: Colors.cardBackground, borderRadius: Radius.xxl, marginBottom: Spacing.md, overflow: 'hidden', ...Shadow.card },
+  exSectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderBottomWidth: 0.5, borderBottomColor: Colors.separator },
+  exSectionTitle: { ...Type.headline, color: Colors.text },
+  exAddBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: Colors.primary + '15', paddingHorizontal: Spacing.md, paddingVertical: 6, borderRadius: Radius.pill },
+  exAddBtnText: { ...Type.subhead, color: Colors.primary, fontWeight: '600' },
+  exEmpty: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing.xl, gap: Spacing.sm },
+  exEmptyText: { ...Type.callout, color: Colors.textTertiary },
+  exList: {},
+  exRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
+  exIconWrap: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', marginRight: Spacing.md },
+  exInfo: { flex: 1 },
+  exName: { ...Type.callout, fontWeight: '600', color: Colors.text },
+  exMeta: { ...Type.caption, color: Colors.textSecondary, marginTop: 2 },
+  exRight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  exCal: { ...Type.callout, color: Colors.green, fontWeight: '600' },
+  exDivider: { height: 0.5, backgroundColor: Colors.separator, marginLeft: 38 + Spacing.md + Spacing.lg },
+  exTotalRow: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, borderTopWidth: 0.5, borderTopColor: Colors.separator },
+  exTotalLabel: { ...Type.callout, color: Colors.textSecondary },
+  exTotalVal: { ...Type.callout, fontWeight: '700', color: Colors.green },
+  // Exercise Modal
+  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
+  modalSheet: { backgroundColor: Colors.cardBackground, borderTopLeftRadius: Radius.xxxl, borderTopRightRadius: Radius.xxxl, padding: Spacing.xl, paddingBottom: 44 },
+  modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: Colors.separator, alignSelf: 'center', marginBottom: Spacing.xl },
+  modalTitle: { ...Type.title2, color: Colors.text, marginBottom: Spacing.lg },
+  modalLabel: { ...Type.subhead, color: Colors.textSecondary, marginBottom: Spacing.sm, marginTop: Spacing.md },
+  exTypeRow: { gap: Spacing.sm, paddingBottom: Spacing.sm },
+  exTypeChip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Colors.systemFill, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radius.pill },
+  exTypeChipOn: { backgroundColor: Colors.primary },
+  exTypeLabel: { ...Type.subhead, color: Colors.textSecondary },
+  durationRow: { flexDirection: 'row', gap: Spacing.sm, flexWrap: 'wrap', marginBottom: Spacing.sm },
+  durationChip: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderRadius: Radius.pill, backgroundColor: Colors.systemFill },
+  durationChipOn: { backgroundColor: Colors.primary },
+  durationLabel: { ...Type.callout, fontWeight: '600', color: Colors.textSecondary },
+  durationInput: { flex: 1, borderWidth: 1, borderColor: Colors.separator, borderRadius: Radius.lg, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, ...Type.callout, color: Colors.text, minWidth: 80 },
+  estimateText: { ...Type.subhead, color: Colors.green, fontWeight: '600', marginVertical: Spacing.md },
+  modalBtns: { flexDirection: 'row', gap: Spacing.md, marginTop: Spacing.sm },
+  modalCancel: { flex: 1, paddingVertical: 15, borderRadius: Radius.pill, backgroundColor: Colors.systemFill, alignItems: 'center' },
+  modalCancelText: { ...Type.headline, color: Colors.text },
+  modalSave: { flex: 2, paddingVertical: 15, borderRadius: Radius.pill, backgroundColor: Colors.primary, alignItems: 'center', ...Shadow.button },
+  modalSaveText: { fontSize: 17, fontWeight: '700', color: '#fff' },
 });

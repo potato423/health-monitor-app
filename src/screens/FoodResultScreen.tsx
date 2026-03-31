@@ -286,6 +286,14 @@ export default function FoodResultScreen() {
           </>
         )}
 
+        {/* Medical disclaimer */}
+        <View style={styles.disclaimer}>
+          <Ionicons name="information-circle-outline" size={14} color={Colors.textTertiary} />
+          <Text style={styles.disclaimerText}>
+            For informational purposes only. Not medical advice. Always consult your doctor before changing your diet.
+          </Text>
+        </View>
+
         <View style={{ height: 110 }} />
       </ScrollView>
 
@@ -368,4 +376,12 @@ const styles = StyleSheet.create({
   bottomBar: { paddingHorizontal: Spacing.xl, paddingBottom: Spacing.xl, paddingTop: Spacing.md, backgroundColor: Colors.background, borderTopWidth: 0.5, borderTopColor: Colors.separator },
   logBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, backgroundColor: Colors.primary, borderRadius: Radius.pill, paddingVertical: 17, ...Shadow.button },
   logBtnText: { fontSize: 17, fontWeight: '700', color: '#fff', letterSpacing: -0.2 },
+  disclaimer: {
+    flexDirection: 'row', alignItems: 'flex-start',
+    paddingHorizontal: Spacing.xl, marginTop: Spacing.xl,
+    gap: Spacing.xs,
+  },
+  disclaimerText: {
+    flex: 1, fontSize: 11, color: Colors.textTertiary, lineHeight: 16,
+  },
 });

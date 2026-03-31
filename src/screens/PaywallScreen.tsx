@@ -163,7 +163,7 @@ export default function PaywallScreen() {
             <Text style={styles.linkText}>Privacy Policy</Text>
           </TouchableOpacity>
           <Text style={styles.dot}>·</Text>
-          <TouchableOpacity onPress={() => Linking.openURL('https://potato423.github.io/health-monitor-app/privacy-policy.html')} activeOpacity={0.7}>
+          <TouchableOpacity onPress={() => Linking.openURL('https://potato423.github.io/health-monitor-app/terms.html')} activeOpacity={0.7}>
             <Text style={styles.linkText}>Terms</Text>
           </TouchableOpacity>
         </View>
