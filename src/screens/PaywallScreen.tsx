@@ -1,32 +1,29 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  SafeAreaView, ScrollView, Alert, Animated, Linking,
+  SafeAreaView, ScrollView, Alert, Animated, Linking, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import { Colors, Spacing, Radius, Shadow, Type } from '../constants/colors';
-import { paymentService } from '../services/paymentService';
+import { paymentService, SubscriptionProduct } from '../services/paymentService';
 
 const FEATURES = [
-  { icon: 'camera',            title: 'Unlimited Food Scans',      desc: 'Scan every meal — no daily cap' },
-  { icon: 'bar-chart',         title: 'Full Health Analytics',     desc: 'Weekly & monthly trend charts' },
-  { icon: 'bulb',              title: 'AI Personalized Advice',    desc: 'Tailored to your conditions' },
-  { icon: 'notifications',     title: 'Smart Meal Reminders',      desc: 'Custom breakfast, lunch & dinner alerts' },
-  { icon: 'document-text',     title: 'PDF Health Reports',        desc: 'Share with your doctor anytime' },
-  { icon: 'shield-checkmark',  title: 'End-to-End Privacy',        desc: 'Your data never leaves your device' },
+  { icon: 'camera',           title: 'Unlimited Food Scans',   desc: 'Scan every meal — no daily cap' },
+  { icon: 'bar-chart',        title: 'Full Health Analytics',  desc: 'Weekly & monthly trend charts' },
+  { icon: 'bulb',             title: 'AI Personalized Advice', desc: 'Tailored to your conditions' },
+  { icon: 'notifications',    title: 'Smart Meal Reminders',   desc: 'Custom breakfast, lunch & dinner alerts' },
+  { icon: 'document-text',    title: 'Health Reports',         desc: 'Exportable summaries to share with your doctor' },
+  { icon: 'shield-checkmark', title: 'End-to-End Privacy',     desc: 'Your data never leaves your device' },
 ];
-
-const PLANS = [
-  { id: 'monthly', label: 'Monthly', price: '$14.99', sub: 'per month', badge: null,    highlight: false },
-  { id: 'yearly',  label: 'Annual',  price: '$89.99', sub: '$7.50 / mo', badge: 'Save 50%', highlight: true  },
-] as const;
 
 export default function PaywallScreen() {
   const navigation = useNavigation();
-  const [plan, setPlan]       = useState<'monthly' | 'yearly'>('yearly');
-  const [loading, setLoading] = useState(false);
+  const [plan, setPlan]           = useState<'monthly' | 'yearly'>('yearly');
+  const [loading, setLoading]     = useState(false);
+  const [products, setProducts]   = useState<SubscriptionProduct[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
 
   const fadeAnim  = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(32)).current;
@@ -36,21 +33,31 @@ export default function PaywallScreen() {
       Animated.timing(fadeAnim,  { toValue: 1, duration: 500, useNativeDriver: true }),
       Animated.spring(slideAnim, { toValue: 0, tension: 70, friction: 10, useNativeDriver: true }),
     ]).start();
+
+    // Load real prices from App Store
+    paymentService.getProducts().then(p => {
+      setProducts(p);
+      setLoadingProducts(false);
+    });
   }, []);
 
   const handlePurchase = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setLoading(true);
-    const result = await paymentService.purchase(
-      plan === 'monthly' ? 'com.healthmonitor.chroniccare.monthly' : 'com.healthmonitor.chroniccare.yearly'
-    );
+    const productId = plan === 'monthly'
+      ? 'com.healthmonitor.chroniccare.monthly'
+      : 'com.healthmonitor.chroniccare.yearly';
+    const result = await paymentService.purchase(productId);
     setLoading(false);
     if (result.success) {
-      Alert.alert('Welcome to Pro! 🎉', 'All features are now unlocked.', [
+      Alert.alert('Welcome to Pro!', 'All features are now unlocked.', [
         { text: 'Get Started', onPress: () => navigation.goBack() },
       ]);
     } else {
-      Alert.alert('Purchase Failed', result.error ?? 'Please try again.');
+      // Only show error for real failures (not user-cancelled)
+      if (result.error && !result.error.includes('cancelled')) {
+        Alert.alert('Purchase Failed', result.error);
+      }
     }
   };
 
@@ -60,11 +67,16 @@ export default function PaywallScreen() {
     setLoading(false);
     Alert.alert(
       result.success ? 'Restored!' : 'Nothing to Restore',
-      result.success ? 'Your subscription has been restored.' : 'No previous purchase found for this Apple ID.'
+      result.success
+        ? 'Your subscription has been restored.'
+        : 'No previous purchase found for this Apple ID.'
     );
   };
 
-  const activePlan = PLANS.find(p => p.id === plan)!;
+  // Find active plan display data
+  const monthly = products.find(p => p.period === 'monthly');
+  const yearly  = products.find(p => p.period === 'yearly');
+  const activePlan = plan === 'monthly' ? monthly : yearly;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -100,42 +112,65 @@ export default function PaywallScreen() {
                 </View>
                 <Ionicons name="checkmark-circle" size={20} color={Colors.green} />
               </View>
-              {i < FEATURES.length - 1 && <View style={[styles.featureDiv, { marginLeft: 36 + Spacing.md + Spacing.lg }]} />}
+              {i < FEATURES.length - 1 && (
+                <View style={[styles.featureDiv, { marginLeft: 36 + Spacing.md + Spacing.lg }]} />
+              )}
             </View>
           ))}
         </Animated.View>
 
         {/* Plan Selector */}
-        <View style={styles.plansRow}>
-          {PLANS.map(p => (
-            <TouchableOpacity
-              key={p.id}
-              style={[styles.planCard, p.highlight && styles.planCardHL, plan === p.id && styles.planCardSel]}
-              onPress={async () => { await Haptics.selectionAsync(); setPlan(p.id); }}
-              activeOpacity={0.8}
-            >
-              {p.badge && (
-                <View style={styles.planBadge}>
-                  <Text style={styles.planBadgeText}>{p.badge}</Text>
-                </View>
-              )}
-              {plan === p.id && (
-                <View style={styles.planCheck}>
-                  <Ionicons name="checkmark-circle" size={20} color={Colors.primary} />
-                </View>
-              )}
-              <Text style={[styles.planLabel, plan === p.id && { color: Colors.primary }]}>{p.label}</Text>
-              <Text style={[styles.planPrice, plan === p.id && { color: Colors.primary }]}>{p.price}</Text>
-              <Text style={styles.planSub}>{p.sub}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        {loadingProducts ? (
+          <View style={styles.productLoading}>
+            <ActivityIndicator color={Colors.primary} />
+            <Text style={styles.productLoadingText}>Loading prices…</Text>
+          </View>
+        ) : (
+          <View style={styles.plansRow}>
+            {[
+              { id: 'monthly' as const, data: monthly, highlight: false },
+              { id: 'yearly'  as const, data: yearly,  highlight: true  },
+            ].map(({ id, data, highlight }) => (
+              <TouchableOpacity
+                key={id}
+                style={[
+                  styles.planCard,
+                  highlight && styles.planCardHL,
+                  plan === id && styles.planCardSel,
+                ]}
+                onPress={async () => { await Haptics.selectionAsync(); setPlan(id); }}
+                activeOpacity={0.8}
+              >
+                {data?.savings && (
+                  <View style={styles.planBadge}>
+                    <Text style={styles.planBadgeText}>{data.savings}</Text>
+                  </View>
+                )}
+                {plan === id && (
+                  <View style={styles.planCheck}>
+                    <Ionicons name="checkmark-circle" size={20} color={Colors.primary} />
+                  </View>
+                )}
+                <Text style={[styles.planLabel, plan === id && { color: Colors.primary }]}>
+                  {data?.title ?? (id === 'monthly' ? 'Monthly' : 'Annual')}
+                </Text>
+                <Text style={[styles.planPrice, plan === id && { color: Colors.primary }]}>
+                  {data?.price ?? (id === 'monthly' ? '$14.99' : '$89.99')}
+                </Text>
+                <Text style={styles.planSub}>
+                  {data?.pricePerMonth ?? (id === 'monthly' ? '$14.99 / mo' : '$7.50 / mo')}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
-        {/* Legal note */}
+        {/* Legal */}
         <View style={styles.legalNote}>
           <Ionicons name="information-circle-outline" size={14} color={Colors.textTertiary} />
           <Text style={styles.legalText}>
-            Subscription auto-renews. Cancel anytime in your Apple ID settings before the renewal date.
+            Payment charged to your Apple ID. Subscription auto-renews unless cancelled at least
+            24 hours before the renewal date. Manage in Apple ID Settings.
           </Text>
         </View>
 
@@ -144,14 +179,17 @@ export default function PaywallScreen() {
       {/* CTA */}
       <View style={styles.cta}>
         <TouchableOpacity
-          style={[styles.ctaBtn, loading && { opacity: 0.7 }]}
+          style={[styles.ctaBtn, (loading || loadingProducts) && { opacity: 0.7 }]}
           onPress={handlePurchase}
-          disabled={loading}
+          disabled={loading || loadingProducts}
           activeOpacity={0.88}
         >
-          <Text style={styles.ctaBtnText}>
-            {loading ? 'Processing…' : `Start with ${activePlan.label} · ${activePlan.price}`}
-          </Text>
+          {loading
+            ? <ActivityIndicator color="#fff" />
+            : <Text style={styles.ctaBtnText}>
+                {`Subscribe · ${activePlan?.price ?? '—'}`}
+              </Text>
+          }
         </TouchableOpacity>
 
         <View style={styles.linksRow}>
@@ -160,7 +198,7 @@ export default function PaywallScreen() {
           </TouchableOpacity>
           <Text style={styles.dot}>·</Text>
           <TouchableOpacity onPress={() => Linking.openURL('https://potato423.github.io/health-monitor-app/privacy-policy.html')} activeOpacity={0.7}>
-            <Text style={styles.linkText}>Privacy Policy</Text>
+            <Text style={styles.linkText}>Privacy</Text>
           </TouchableOpacity>
           <Text style={styles.dot}>·</Text>
           <TouchableOpacity onPress={() => Linking.openURL('https://potato423.github.io/health-monitor-app/terms.html')} activeOpacity={0.7}>
@@ -187,6 +225,8 @@ const styles = StyleSheet.create({
   featureTitle: { ...Type.callout, fontWeight: '600', color: Colors.text },
   featureDesc: { ...Type.caption, color: Colors.textSecondary, marginTop: 1 },
   featureDiv: { height: 0.5, backgroundColor: Colors.separator },
+  productLoading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing.xxl, gap: Spacing.md },
+  productLoadingText: { ...Type.callout, color: Colors.textSecondary },
   plansRow: { flexDirection: 'row', paddingHorizontal: Spacing.xl, marginTop: Spacing.xl, gap: Spacing.md },
   planCard: { flex: 1, backgroundColor: Colors.cardBackground, borderRadius: Radius.xxl, padding: Spacing.lg, borderWidth: 2, borderColor: 'transparent', position: 'relative', overflow: 'hidden', ...Shadow.card },
   planCardHL: { borderColor: Colors.primary + '40' },
